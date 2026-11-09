@@ -2,7 +2,9 @@
 
 > **⚠️ デモサイト**：このリポジトリは株式会社バルテスのシステムテスト・デモンストレーション目的で作成された架空のチケット販売サービスです。掲載されているイベント・出演者・団体・会場・料金はすべてフィクションであり、実際の購入・決済・個人情報の登録は行われません。
 
-🌐 **デモサイト**: https://sadaakiemuravaltes.github.io/ticket-market/
+🌐 **デモサイト**: https://valtes-rd.github.io/tdash-eva-202702/
+
+📦 **リポジトリ**: https://github.com/valtes-rd/tdash-eva-202702（旧: SadaakiEmuraValtes/ticket-market）
 
 スポーツ／コンサート／イベント／即売会／演劇・舞台のチケットを検索・購入できるデモサイトです。
 [Demo-Travel](https://github.com/SadaakiEmuraValtes/Demo-Travel) と同じ実装方針（Vanilla JS・ビルド不要・テスト自動化しやすいID設計・`?lang=en` 英語対応）で作られています。
