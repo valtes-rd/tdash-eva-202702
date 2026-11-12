@@ -22,7 +22,7 @@ function buildHeader(activePage = "") {
 <header id="site-header" class="site-header">
   <div class="header-inner">
     <a href="${_u("index.html")}" class="logo" id="logo">
-      <span class="logo-icon">🎫</span> TicketMarket
+      <span class="logo-icon">🎫</span> <span class="logo-text">TicketMarket</span>
     </a>
     <div class="header-search">
       <input type="text" id="hs-keyword" placeholder="${_t("イベント名・出演者・会場", "Event, performer, venue")}" onkeydown="if(event.key==='Enter')headerSearch()">
@@ -35,6 +35,10 @@ function buildHeader(activePage = "") {
       <span id="header-nav-dynamic" class="header-nav-dynamic"></span>
       <button id="btn-lang-toggle" class="btn-lang" onclick="toggleLang()">${_t("EN", "日本語")}</button>
     </nav>
+    <div id="header-clock" class="header-clock" aria-live="off">
+      <span id="header-datetime" class="header-datetime"></span>
+      <span id="header-weather" class="header-weather"></span>
+    </div>
   </div>
   <div class="genre-nav" id="genre-nav">
     <div class="genre-nav-inner">
@@ -74,7 +78,48 @@ function buildPage({ title, activePage = "" }) {
   // buildPage は App.init() の renderHeader() より後に実行されるためここで再描画する
   App.renderHeader();
   I18n.apply();
+  HeaderClock.start();
 }
+
+// ── ヘッダー右側の現在日時（年月日時分）＋天気マーク（ページ表示ごとにランダム・デモ用） ──
+// #header-datetime[data-value="yyyy-mm-ddTHH:MM"] / #header-weather[data-weather="sunny|cloudy|..."]
+const HeaderClock = (() => {
+  const WEATHERS = [
+    { key: "sunny",   emoji: "☀️", ja: "晴れ",     en: "Sunny" },
+    { key: "partly",  emoji: "⛅", ja: "晴れ時々曇り", en: "Partly cloudy" },
+    { key: "cloudy",  emoji: "☁️", ja: "曇り",     en: "Cloudy" },
+    { key: "rainy",   emoji: "🌧️", ja: "雨",       en: "Rain" },
+    { key: "thunder", emoji: "⛈️", ja: "雷雨",     en: "Thunderstorm" },
+    { key: "snowy",   emoji: "❄️", ja: "雪",       en: "Snow" },
+  ];
+  let _timer = null;
+  const pad = n => String(n).padStart(2, "0");
+
+  function render() {
+    const el = document.getElementById("header-datetime");
+    if (!el) return;
+    const d = new Date();
+    const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const M = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    el.dataset.value = `${ymd}T${hm}`;
+    el.innerHTML = I18n.isEN()
+      ? `<span class="hc-date">${M[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</span><span class="hc-time">${hm}</span>`
+      : `<span class="hc-date">${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日</span><span class="hc-time">${hm}</span>`;
+  }
+
+  function start() {
+    const w = WEATHERS[Math.floor(Math.random() * WEATHERS.length)];
+    const we = document.getElementById("header-weather");
+    if (we) { we.textContent = w.emoji; we.dataset.weather = w.key; we.title = I18n.t(w.ja, w.en); we.setAttribute("aria-label", I18n.t(w.ja, w.en)); }
+    render();
+    // 次の分の切り替わりに合わせて更新し、以降は1分ごと
+    clearTimeout(_timer);
+    const tick = () => { render(); _timer = setTimeout(tick, 60000 - (Date.now() % 60000) + 50); };
+    _timer = setTimeout(tick, 60000 - (Date.now() % 60000) + 50);
+  }
+
+  return { start, render, WEATHERS };
+})();
 
 // ── お知らせ（新着モーダル・詳細モーダル） ─────────────────
 // 新着モーダル: お知らせ画面（マイページのお知らせタブ）を開いたときに未読があれば表示

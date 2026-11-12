@@ -78,6 +78,11 @@ button, input, select, textarea { font-family: inherit; }
   background: transparent; border: 1px solid rgba(255,255,255,.5); color: white; border-radius: 12px;
   padding: 3px 10px; font-size: 12px; cursor: pointer; font-weight: 600; margin-left: 4px;
 }
+.header-clock { display: flex; align-items: center; gap: 6px; color: #E4DEF5; font-size: 12.5px; white-space: nowrap; flex-shrink: 0; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.2); }
+.header-datetime { font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.hc-date { font-size: 10.5px; color: #B9B2D0; }
+.hc-time { font-weight: 700; color: var(--white); font-size: 14px; }
+.header-weather { font-size: 17px; line-height: 1; cursor: default; }
 .avatar-circle {
   width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: var(--white);
   font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -467,3 +472,6 @@ button, input, select, textarea { font-family: inherit; }
   .pager-btn { min-width: 30px; height: 32px; padding: 0 7px; font-size: 12px; }
   .pager-first, .pager-last { display: none; }
 }
+/* ヘッダーの日時：上段に日付・下段に時刻。スマホ幅は日付とロゴ文字を省略 */
+@media (max-width: 640px) { .header-clock { padding-left: 6px; gap: 4px; } .header-clock .hc-date { display: none; } .hc-time { font-size: 12px; } .header-weather { font-size: 15px; } }
+@media (max-width: 420px) { .logo .logo-text { display: none; } }

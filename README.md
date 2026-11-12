@@ -95,6 +95,7 @@ ticket-market/
 | 🔔 お知らせ | ヘッダー「🔔 お知らせ」（未読数バッジ）／マイページ「お知らせ」タブ。カテゴリ（キャンペーン/チケット/抽選/サービス）・未読で絞り込み、すべて既読。お知らせ画面を開いたときに未読があれば新着モーダルを表示し、「見る」で開封（既読化） |
 | ❤️ お気に入り / 👀 閲覧履歴 | お気に入り登録（ログイン必須）、最近チェックしたイベント（トップに表示） |
 | ⏳ Loading演出 | ログインで0.5〜1.5秒、検索・空席確認・購入確定・会員登録で3〜5秒のオーバーレイ（操作ロック） |
+| 🕒 ヘッダー日時 | ヘッダー右端に現在の年月日・時分（1分ごと更新）と天気マーク（ランダム・デモ用）。スマホ幅は時刻と天気のみ |
 | 🌐 英語表示 | `?lang=en` または ヘッダーの EN ボタン |
 
 ---
@@ -134,6 +135,7 @@ Demo-Travel と同様、XPath/CSS で安定して要素を特定できるよう 
 | 完了画面の各値 | `#complete-no` `#complete-event` `#complete-total` `#complete-status` … |
 | 購入履歴（注文番号ベース） | `tr[data-order-no="TM-…"][data-order-status="purchased"]`、`#btn-ticket-TM-…` / `#btn-cancel-TM-…` / `#btn-order-detail-TM-…` |
 | ユーザー情報 | `#profile-name` `#profile-email` … / 編集 `#pf-name` … `#btn-save-profile` |
+| ヘッダーの日時・天気 | `#header-datetime[data-value="yyyy-mm-ddTHH:MM"]`（表示は「2026年11月13日 / 14:05」、1分ごとに更新）/ `#header-weather[data-weather]`（sunny / partly / cloudy / rainy / thunder / snowy。ページ表示ごとにランダム） |
 | お知らせ（ヘッダー） | `#header-notices[data-unread="3"]` / 未読バッジ `#header-notice-badge`（未読0件のときは要素なし） |
 | 新着モーダル | `#notice-popup[data-count]` / `#notice-popup-count` / 各行 `.notice-popup-item[data-notice-id]` / 見る `#btn-notice-view-{お知らせID}`（`.btn-notice-view`） / `#btn-notice-popup-later` |
 | お知らせ詳細モーダル | `#notice-detail[data-notice-id]` / `#notice-detail-title` `#notice-detail-body` `#notice-detail-date` / `#btn-notice-back`（新着一覧へ） / `#btn-notice-detail-close` / `#btn-notice-event` / `#btn-notice-tab` |
