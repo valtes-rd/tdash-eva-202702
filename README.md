@@ -96,6 +96,7 @@ ticket-market/
 | ❤️ お気に入り / 👀 閲覧履歴 | お気に入り登録（ログイン必須）、最近チェックしたイベント（トップに表示） |
 | ⏳ Loading演出 | ログインで0.5〜1.5秒、検索・空席確認・購入確定・会員登録で3〜5秒のオーバーレイ（操作ロック） |
 | 🕒 ヘッダー日時 | ヘッダー右端に現在の年月日・時分（1分ごと更新）と天気マーク（ランダム・デモ用）。スマホ幅は時刻と天気のみ |
+| 🧩 会員登録の入力部品 | お住まいの地域（地方→都道府県のカスタムドリルダウン・必須）、職業（カスタムドロップダウン・必須）、興味のあるジャンル（カスタムチェックボックス・複数）、メルマガ（トグルスイッチ）、規約同意（カスタムチェックボックス）。自動化の難易度を上げるため標準の select / checkbox をそのまま操作できない作り |
 | 🌐 英語表示 | `?lang=en` または ヘッダーの EN ボタン |
 
 ---
@@ -142,6 +143,8 @@ Demo-Travel と同様、XPath/CSS で安定して要素を特定できるよう 
 | お知らせ一覧（マイページ） | `#tab-notices` / `#tab-notice-badge` / `#count-notices` / `#notice-filter-all\|unread\|campaign\|ticket\|lottery\|info` / `.notice-item[data-notice-id][data-read="false"][data-category]` / `#btn-notice-read-all` / 空 `#no-notices` |
 | ページャー（下部 / 上部） | `#pager[data-current][data-total]` / `#pager-prev` `#pager-next` `#pager-first` `#pager-last` / `#pager-page-3`（`.pager-page[data-page="3"]`、現在ページは `.active`）。上部は `#pager-top` 内で接頭辞 `pager-top-`（例 `#pager-top-next`） |
 | 表示範囲 | `#result-range`（例「250件中 21〜40件を表示」）/ `#result-count` / `#event-results[data-page]` |
+| 会員登録：カスタムチェックボックス | `<input type="checkbox">` は **opacity:0・pointer-events:none** で隠しているため直接クリック不可（Playwright の `check('#r-agree')` はタイムアウト、Selenium は not interactable）。ラベル `#r-agree-label` / `#r-interest-{ジャンルID}-label` / `#r-newsletter-label` をクリックする。状態は `input.checked` またはラベルの `data-checked="true|false"` |
+| 会員登録：カスタムドロップダウン | `<select>` ではない。トリガー `#dd-region-trigger` / `#dd-occupation-trigger`（`aria-expanded`）をクリック → 約0.3秒「読み込み中…」の後に選択肢を描画。お住まいの地域は **地方 → 都道府県のドリルダウン**：`#dd-region-group-kanto` → `#dd-region-opt-東京都`（戻る `#dd-region-back`）。職業は `#dd-occupation-opt-student` 等。選択値は hidden の `#r-pref` / `#r-occupation` とトリガーの `data-value` |
 | ローディング | `#loading-overlay`（消えるまで待機） |
 
 `<option>` / 行要素の `data-availability` は `ok`（◎）/ `few`（△）/ `soldout`（×）/ `closed`（受付終了）。

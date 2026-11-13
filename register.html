@@ -68,10 +68,29 @@
           <label for="r-address" data-i18n-en="Address (optional)">住所（任意）</label>
           <input type="text" id="r-address" placeholder="東京都千代田区…">
         </div>
+        <div class="form-group" id="g-pref">
+          <span class="form-label-text"><span data-i18n-en="Region of Residence">お住まいの地域</span><span class="req">*</span></span>
+          <div id="dd-region"></div>
+          <input type="hidden" id="r-pref" name="pref">
+          <span class="error-msg" data-i18n-en="Please select your prefecture">都道府県を選択してください</span>
+        </div>
+        <div class="form-group" id="g-occupation">
+          <span class="form-label-text"><span data-i18n-en="Occupation">職業</span><span class="req">*</span></span>
+          <div id="dd-occupation"></div>
+          <input type="hidden" id="r-occupation" name="occupation">
+          <span class="error-msg" data-i18n-en="Please select your occupation">職業を選択してください</span>
+        </div>
+        <div class="form-group" id="g-interests" style="grid-column:1/-1">
+          <span class="form-label-text" data-i18n-en="Genres of Interest (optional, multiple)">興味のあるジャンル（任意・複数選択可）</span>
+          <div class="cc-group-list" id="r-interests"></div>
+        </div>
+        <div class="form-group" id="g-newsletter" style="grid-column:1/-1">
+          <span class="form-label-text" data-i18n-en="Newsletter">メールマガジン</span>
+          <div id="r-newsletter-wrap"></div>
+        </div>
       </div>
 
-      <label class="check-line mt-16" id="g-agree"><input type="checkbox" id="r-agree">
-        <span data-i18n-en="I agree to the Terms of Use and Privacy Policy (demo).">利用規約・プライバシーポリシーに同意します（デモ）</span></label>
+      <div class="mt-16" id="g-agree"></div>
 
       <div id="reg-err" class="alert alert-danger hidden mt-16"></div>
       <button id="btn-register" class="btn btn-primary btn-block btn-lg mt-16" onclick="doRegister()" data-i18n-en="Create Account">登録する</button>
@@ -85,6 +104,20 @@
     document.addEventListener("DOMContentLoaded", () => {
       buildPage({ title: I18n.t("会員登録", "Sign Up") });
       if (App.isLoggedIn()) I18n.go("mypage.html");
+
+      // カスタムドロップダウン：お住まいの地域（地方 → 都道府県）・職業
+      CustomSelect.init({ id: "dd-region", input: "r-pref", placeholder: ["地方・都道府県を選択", "Select region / prefecture"], groupHead: ["地方を選択してください", "Select a region"],
+        groups: REGIONS.map(r => ({ key: r.key, label: I18n.t(r.name, r.en), items: r.prefs.map(([ja, en]) => ({ value: ja, label: I18n.t(ja, en) })) })) });
+      CustomSelect.init({ id: "dd-occupation", input: "r-occupation", placeholder: ["職業を選択", "Select occupation"],
+        items: OCCUPATIONS.map(o => ({ value: o.key, label: I18n.t(o.name, o.en) })) });
+
+      // カスタムチェックボックス：興味のあるジャンル・メルマガ・規約同意
+      document.getElementById("r-interests").innerHTML = GENRES.map(g =>
+        customCheckHtml({ id: "r-interest-" + g.id, name: "r-interest", value: g.id, label: `${g.emoji} ${I18n.t(g.name, g.en)}` })).join("");
+      document.getElementById("r-newsletter-wrap").innerHTML = customCheckHtml({ id: "r-newsletter", kind: "switch", checked: true,
+        label: I18n.t("お得なキャンペーン情報をメールで受け取る", "Receive campaign news by email") });
+      document.getElementById("g-agree").innerHTML = customCheckHtml({ id: "r-agree",
+        label: I18n.t("利用規約・プライバシーポリシーに同意します（デモ）", "I agree to the Terms of Use and Privacy Policy (demo).") });
     });
 
     function pwRules(pw) {
@@ -102,7 +135,9 @@
       const v = id => document.getElementById(id).value.trim();
       const d = { name: v("r-name"), kana: v("r-kana"), email: v("r-email"), password: document.getElementById("r-pw").value,
                   pw2: document.getElementById("r-pw2").value, phone: v("r-phone"), birthdate: App.parseDateStr(v("r-birth")),
-                  postal: v("r-postal"), address: v("r-address") };
+                  postal: v("r-postal"), address: v("r-address"), pref: v("r-pref"), occupation: v("r-occupation"),
+                  interests: [...document.querySelectorAll('input[name="r-interest"]:checked')].map(x => x.value),
+                  newsletter: document.getElementById("r-newsletter").checked };
       const age = d.birthdate ? (App.today() - new Date(d.birthdate + "T00:00:00")) / (365.25 * 86400000) : 0;
       const checks = [
         ["g-name", !!d.name],
@@ -113,6 +148,8 @@
         ["g-phone", /^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(d.phone)],
         ["g-birth", !!d.birthdate && age >= 13 && age < 120],
         ["g-postal", !d.postal || /^\d{3}-\d{4}$/.test(d.postal)],
+        ["g-pref", !!d.pref],
+        ["g-occupation", !!d.occupation],
       ];
       let ok = true;
       checks.forEach(([id, valid]) => { document.getElementById(id).classList.toggle("has-error", !valid); if (!valid) ok = false; });

@@ -137,6 +137,7 @@ const App = (() => {
     const user = {
       id: "u" + Date.now(), name: data.name, kana: data.kana, email: data.email, password: data.password,
       phone: data.phone, birthdate: data.birthdate, postal: data.postal || "", address: data.address || "",
+      pref: data.pref || "", occupation: data.occupation || "", interests: data.interests || [], newsletter: !!data.newsletter,
       card: "", memberSince: fmtDate(new Date()), note: _t("新規登録ユーザー", "Newly registered user"),
     };
     _state.users.push(user);

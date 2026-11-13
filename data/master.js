@@ -74,6 +74,25 @@ const SUB_EN = {
   "ミュージカル": "Musicals", "演劇": "Plays", "お笑い": "Comedy", "伝統芸能": "Traditional",
 };
 
+// ── 会員登録：お住まいの地域（地方 → 都道府県のドリルダウン）・職業 ──
+const REGIONS = [
+  { key: "hokkaido-tohoku", name: "北海道・東北", en: "Hokkaido / Tohoku", prefs: [["北海道", "Hokkaido"], ["青森県", "Aomori"], ["岩手県", "Iwate"], ["宮城県", "Miyagi"], ["秋田県", "Akita"], ["山形県", "Yamagata"], ["福島県", "Fukushima"]] },
+  { key: "kanto",   name: "関東",   en: "Kanto",   prefs: [["茨城県", "Ibaraki"], ["栃木県", "Tochigi"], ["群馬県", "Gunma"], ["埼玉県", "Saitama"], ["千葉県", "Chiba"], ["東京都", "Tokyo"], ["神奈川県", "Kanagawa"]] },
+  { key: "chubu",   name: "中部",   en: "Chubu",   prefs: [["新潟県", "Niigata"], ["富山県", "Toyama"], ["石川県", "Ishikawa"], ["福井県", "Fukui"], ["山梨県", "Yamanashi"], ["長野県", "Nagano"], ["岐阜県", "Gifu"], ["静岡県", "Shizuoka"], ["愛知県", "Aichi"]] },
+  { key: "kinki",   name: "近畿",   en: "Kinki",   prefs: [["三重県", "Mie"], ["滋賀県", "Shiga"], ["京都府", "Kyoto"], ["大阪府", "Osaka"], ["兵庫県", "Hyogo"], ["奈良県", "Nara"], ["和歌山県", "Wakayama"]] },
+  { key: "chugoku-shikoku", name: "中国・四国", en: "Chugoku / Shikoku", prefs: [["鳥取県", "Tottori"], ["島根県", "Shimane"], ["岡山県", "Okayama"], ["広島県", "Hiroshima"], ["山口県", "Yamaguchi"], ["徳島県", "Tokushima"], ["香川県", "Kagawa"], ["愛媛県", "Ehime"], ["高知県", "Kochi"]] },
+  { key: "kyushu-okinawa", name: "九州・沖縄", en: "Kyushu / Okinawa", prefs: [["福岡県", "Fukuoka"], ["佐賀県", "Saga"], ["長崎県", "Nagasaki"], ["熊本県", "Kumamoto"], ["大分県", "Oita"], ["宮崎県", "Miyazaki"], ["鹿児島県", "Kagoshima"], ["沖縄県", "Okinawa"]] },
+];
+const OCCUPATIONS = [
+  { key: "employee",  name: "会社員",           en: "Company employee" },
+  { key: "public",    name: "公務員",           en: "Public servant" },
+  { key: "self",      name: "自営業",           en: "Self-employed" },
+  { key: "student",   name: "学生",             en: "Student" },
+  { key: "parttime",  name: "パート・アルバイト", en: "Part-time" },
+  { key: "homemaker", name: "主婦・主夫",       en: "Homemaker" },
+  { key: "other",     name: "その他",           en: "Other" },
+];
+
 // ── エリア・会場 ───────────────────────────────────────────
 const AREAS = [
   { id: "hokkaido", name: "北海道・東北", en: "Hokkaido / Tohoku" },

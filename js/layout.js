@@ -405,3 +405,98 @@ function handleBuy(eventId, perfId) {
   if (!App.requireLogin(I18n.urlWith(`ticket-select.html?eventId=${eventId}${perfId ? "&perfId=" + perfId : ""}`))) return;
   I18n.go(`ticket-select.html?eventId=${eventId}${perfId ? "&perfId=" + perfId : ""}`);
 }
+
+// ── カスタムチェックボックス（自動化難易度アップ用） ──────────
+// 本物の <input type="checkbox"> は opacity:0・pointer-events:none で隠し、見た目は .cc-box で描画する。
+// input を直接クリックすることはできない（上に重なる見た目の要素がクリックを受ける）→ ラベル（.cc）をクリックして切り替える。
+// 状態は input.checked のほか、ラベルの data-checked="true|false" でも取得できる。
+// kind: "box"（四角いチェック） / "switch"（トグルスイッチ）
+function customCheckHtml({ id, name, value = "on", label, checked = false, kind = "box" }) {
+  return `<label class="cc cc--${kind}" id="${id}-label" for="${id}" data-checked="${checked}">
+      <input type="checkbox" id="${id}" name="${name || id}" value="${value}" ${checked ? "checked" : ""} onchange="this.parentElement.dataset.checked=this.checked">
+      <span class="cc-box" aria-hidden="true"></span><span class="cc-text">${label}</span></label>`;
+}
+
+// ── カスタムドロップダウン（<select> を使わない・ドリルダウン対応） ──
+// CustomSelect.init({ id, input, placeholder:[ja,en], items:[{value,label}] })            … 1階層
+// CustomSelect.init({ id, input, placeholder:[ja,en], groups:[{key,label,items:[...]}] }) … 2階層（グループ → 項目）
+//  トリガー  : #{id}-trigger（role=combobox, aria-expanded, data-value）
+//  パネル    : #{id}-panel。開いてから約0.3秒後に選択肢を描画（それまでは「読み込み中…」）
+//  選択肢    : li.cs-option[data-value] #{id}-opt-{value} ／ グループ li.cs-group[data-group] #{id}-group-{key} ／ 戻る #{id}-back
+//  選択値    : hidden の #{input} と トリガーの data-value に入る
+const CustomSelect = (() => {
+  const cfgs = {};
+  let openId = null;
+  const L = pair => I18n.t(pair[0], pair[1]);
+
+  function init(cfg) {
+    cfgs[cfg.id] = cfg;
+    const el = document.getElementById(cfg.id);
+    el.classList.add("cs");
+    el.innerHTML = `
+      <button type="button" class="cs-trigger" id="${cfg.id}-trigger" role="combobox" aria-haspopup="listbox" aria-expanded="false" data-value=""
+        onclick="CustomSelect.toggle('${cfg.id}')"><span class="cs-value cs-placeholder" id="${cfg.id}-value">${L(cfg.placeholder)}</span><span class="cs-arrow" aria-hidden="true">▾</span></button>
+      <div class="cs-panel hidden" id="${cfg.id}-panel"></div>`;
+  }
+
+  function toggle(id) { openId === id ? close() : open(id); }
+
+  function open(id) {
+    close();
+    openId = id;
+    const panel = document.getElementById(id + "-panel");
+    document.getElementById(id + "-trigger").setAttribute("aria-expanded", "true");
+    panel.classList.remove("hidden");
+    panel.innerHTML = `<div class="cs-loading" id="${id}-loading">${I18n.t("読み込み中…", "Loading…")}</div>`;
+    setTimeout(() => { if (openId === id) renderLevel(id, null); }, 300);
+  }
+
+  function close() {
+    if (!openId) return;
+    document.getElementById(openId + "-panel")?.classList.add("hidden");
+    document.getElementById(openId + "-trigger")?.setAttribute("aria-expanded", "false");
+    openId = null;
+  }
+
+  // groupKey: null → 1階層目（groups があればグループ一覧）
+  function renderLevel(id, groupKey) {
+    const cfg = cfgs[id], panel = document.getElementById(id + "-panel");
+    const cur = document.getElementById(cfg.input).value;
+    const opt = it => `<li role="option" class="cs-option${it.value === cur ? " selected" : ""}" id="${id}-opt-${it.value}" data-value="${it.value}"
+      aria-selected="${it.value === cur}" onclick="CustomSelect.select('${id}','${it.value}')">${it.label}</li>`;
+    if (cfg.groups && !groupKey) {
+      panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div><ul class="cs-list" role="listbox" id="${id}-list" data-level="1">
+        ${cfg.groups.map(g => `<li role="option" class="cs-option cs-group" id="${id}-group-${g.key}" data-group="${g.key}"
+          onclick="CustomSelect.drill('${id}','${g.key}')">${g.label}<span class="cs-chevron" aria-hidden="true">›</span></li>`).join("")}</ul>`;
+      return;
+    }
+    const g = cfg.groups ? cfg.groups.find(x => x.key === groupKey) : null;
+    panel.innerHTML = (g ? `<button type="button" class="cs-back" id="${id}-back" onclick="CustomSelect.drill('${id}',null)">‹ ${g.label}</button>` : "") +
+      `<ul class="cs-list" role="listbox" id="${id}-list" data-level="${g ? 2 : 1}" ${g ? `data-group="${g.key}"` : ""}>${(g ? g.items : cfg.items).map(opt).join("")}</ul>`;
+  }
+
+  function drill(id, groupKey) { renderLevel(id, groupKey); }
+
+  function select(id, value) {
+    const cfg = cfgs[id];
+    let label = "", group = null;
+    if (cfg.groups) cfg.groups.forEach(g => g.items.forEach(it => { if (it.value === value) { label = `${g.label} › ${it.label}`; group = g.key; } }));
+    else label = (cfg.items.find(it => it.value === value) || {}).label || "";
+    const input = document.getElementById(cfg.input);
+    input.value = value;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const trig = document.getElementById(id + "-trigger");
+    trig.dataset.value = value;
+    if (group) trig.dataset.group = group;
+    const v = document.getElementById(id + "-value");
+    v.textContent = label; v.classList.remove("cs-placeholder");
+    close();
+  }
+
+  // パネル外クリック・Esc で閉じる
+  // （ドリルダウンで再描画されて DOM から外れた要素のクリックは「外側」とみなさない）
+  document.addEventListener("click", e => { if (openId && document.contains(e.target) && !document.getElementById(openId)?.contains(e.target)) close(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+
+  return { init, toggle, open, close, drill, select };
+})();

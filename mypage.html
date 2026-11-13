@@ -98,6 +98,10 @@
         ["postal",       I18n.t("郵便番号", "Postal code"), u.postal ? "〒" + u.postal : "-"],
         ["address",      I18n.t("住所", "Address"),         u.address || "-"],
         ["card",         I18n.t("登録クレジットカード", "Registered card"), u.card ? `**** **** **** ${u.card}` : I18n.t("未登録", "Not registered")],
+        ["pref",         I18n.t("お住まいの地域", "Region"), u.pref ? I18n.t(u.pref, (REGIONS.flatMap(r => r.prefs).find(p => p[0] === u.pref) || [, u.pref])[1]) : "-"],
+        ["occupation",   I18n.t("職業", "Occupation"), (o => o ? I18n.t(o.name, o.en) : "-")(OCCUPATIONS.find(o => o.key === u.occupation))],
+        ["interests",    I18n.t("興味のあるジャンル", "Interests"), (u.interests || []).length ? u.interests.map(App.genreName).join("、") : "-"],
+        ["newsletter",   I18n.t("メールマガジン", "Newsletter"), u.newsletter === undefined ? "-" : u.newsletter ? I18n.t("受け取る", "Subscribed") : I18n.t("受け取らない", "Not subscribed")],
         ["member-since", I18n.t("会員登録日", "Member since"), App.fmtDateSlash(u.memberSince)],
       ];
       if (!editing) {
