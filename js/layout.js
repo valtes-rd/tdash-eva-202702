@@ -425,7 +425,10 @@ function customCheckHtml({ id, name, value = "on", label, checked = false, kind 
 
 // ── カスタムドロップダウン（<select> を使わない・ドリルダウン対応） ──
 // CustomSelect.init({ id, input, placeholder:[ja,en], items:[{value,label}] })            … 1階層
-// CustomSelect.init({ id, input, placeholder:[ja,en], groups:[{key,label,items:[...]}] }) … 2階層（グループ → 項目）
+// CustomSelect.init({ id, input, placeholder:[ja,en], groups:[{key,label,items:[...]}] }) … 2階層（グループ → 項目）のドリルダウン
+// CustomSelect.init({ ..., groups:[...], accordion:true })                              … 2階層のアコーディオン（グループを押すと子が下に開く）
+//  アコーディオン: グループ見出し li.cs-acc-head #{id}-group-{key}（aria-expanded）／ 子の一覧 ul.cs-acc-body #{id}-sub-{key}（開くと .open）
+//                  子の選択肢 #{id}-opt-{item.key}（item.key があればそれ、なければ value）。開閉は1つずつ（他のグループは閉じる）
 //  トリガー  : #{id}-trigger（role=combobox, aria-expanded, data-value）
 //  パネル    : #{id}-panel。開いてから約0.3秒後に選択肢を描画（それまでは「読み込み中…」）
 //  選択肢    : li.cs-option[data-value] #{id}-opt-{value} ／ グループ li.cs-group[data-group] #{id}-group-{key} ／ 戻る #{id}-back
@@ -468,8 +471,19 @@ const CustomSelect = (() => {
   function renderLevel(id, groupKey) {
     const cfg = cfgs[id], panel = document.getElementById(id + "-panel");
     const cur = document.getElementById(cfg.input).value;
-    const opt = it => `<li role="option" class="cs-option${it.value === cur ? " selected" : ""}" id="${id}-opt-${it.value}" data-value="${it.value}"
+    const opt = it => `<li role="option" class="cs-option${it.value === cur ? " selected" : ""}" id="${id}-opt-${it.key || it.value}" data-value="${it.value}"
       aria-selected="${it.value === cur}" onclick="CustomSelect.select('${id}','${it.value}')">${it.label}</li>`;
+    if (cfg.accordion) {
+      // 選択済みならそのグループを開いた状態で表示
+      const curGroup = (cfg.groups.find(g => g.items.some(it => it.value === cur)) || {}).key;
+      panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div><ul class="cs-list cs-acc" role="listbox" id="${id}-list">
+        ${cfg.groups.map(g => `<li class="cs-acc-item" data-group="${g.key}">
+          <div class="cs-option cs-acc-head" id="${id}-group-${g.key}" data-group="${g.key}" aria-expanded="${g.key === curGroup}"
+            onclick="CustomSelect.accordion('${id}','${g.key}')">${g.label}<span class="cs-acc-icon" aria-hidden="true">▸</span></div>
+          <ul class="cs-acc-body${g.key === curGroup ? " open" : ""}" id="${id}-sub-${g.key}" role="group" data-group="${g.key}">${g.items.map(opt).join("")}</ul>
+        </li>`).join("")}</ul>`;
+      return;
+    }
     if (cfg.groups && !groupKey) {
       panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div><ul class="cs-list" role="listbox" id="${id}-list" data-level="1">
         ${cfg.groups.map(g => `<li role="option" class="cs-option cs-group" id="${id}-group-${g.key}" data-group="${g.key}"
@@ -482,6 +496,15 @@ const CustomSelect = (() => {
   }
 
   function drill(id, groupKey) { renderLevel(id, groupKey); }
+
+  // アコーディオン：押したグループを開閉（他のグループは閉じる）
+  function accordion(id, key) {
+    document.querySelectorAll(`#${id}-list .cs-acc-head`).forEach(h => {
+      const k = h.dataset.group, willOpen = k === key && h.getAttribute("aria-expanded") !== "true";
+      h.setAttribute("aria-expanded", willOpen);
+      document.getElementById(`${id}-sub-${k}`).classList.toggle("open", willOpen);
+    });
+  }
 
   function select(id, value) {
     const cfg = cfgs[id];
@@ -504,7 +527,7 @@ const CustomSelect = (() => {
   document.addEventListener("click", e => { if (openId && document.contains(e.target) && !document.getElementById(openId)?.contains(e.target)) close(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
 
-  return { init, toggle, open, close, drill, select };
+  return { init, toggle, open, close, drill, accordion, select };
 })();
 
 // ── 郵便番号 → 住所サジェスト（外部APIは使わない） ──────────

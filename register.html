@@ -79,7 +79,7 @@
           <span class="error-msg" data-i18n-en="Please select your prefecture">都道府県を選択してください</span>
         </div>
         <div class="form-group" id="g-occupation">
-          <span class="form-label-text"><span data-i18n-en="Occupation">職業</span><span class="req">*</span></span>
+          <span class="form-label-text"><span data-i18n-en="Occupation / Position">職業・役職</span><span class="req">*</span></span>
           <div id="dd-occupation"></div>
           <input type="hidden" id="r-occupation" name="occupation">
           <span class="error-msg" data-i18n-en="Please select your occupation">職業を選択してください</span>
@@ -112,8 +112,10 @@
       // カスタムドロップダウン：お住まいの地域（地方 → 都道府県）・職業
       CustomSelect.init({ id: "dd-region", input: "r-pref", placeholder: ["地方・都道府県を選択", "Select region / prefecture"], groupHead: ["地方を選択してください", "Select a region"],
         groups: REGIONS.map(r => ({ key: r.key, label: I18n.t(r.name, r.en), items: r.prefs.map(([ja, en]) => ({ value: ja, label: I18n.t(ja, en) })) })) });
-      CustomSelect.init({ id: "dd-occupation", input: "r-occupation", placeholder: ["職業を選択", "Select occupation"],
-        items: OCCUPATIONS.map(o => ({ value: o.key, label: I18n.t(o.name, o.en) })) });
+      CustomSelect.init({ id: "dd-occupation", input: "r-occupation", placeholder: ["職業・役職を選択", "Select occupation / position"],
+        accordion: true, groupHead: ["職業を選び、役職・区分を選択してください", "Select an occupation, then a position"],
+        groups: OCCUPATIONS.map(o => ({ key: o.key, label: I18n.t(o.name, o.en),
+          items: o.roles.map(([k, ja, en]) => ({ value: `${o.key}/${k}`, key: `${o.key}-${k}`, label: I18n.t(ja, en) })) })) });
 
       // カスタムチェックボックス：興味のあるジャンル・メルマガ・規約同意
       document.getElementById("r-interests").innerHTML = GENRES.map(g =>

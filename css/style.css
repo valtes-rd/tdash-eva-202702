@@ -523,3 +523,16 @@ button, input, select, textarea { font-family: inherit; }
 .ps-zip { color: var(--gray); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .postal-suggest-more { padding: 8px 14px; font-size: 12px; color: var(--gray); background: var(--gray-lt); }
 .spinner-sm { width: 14px; height: 14px; border-width: 2px; }
+
+/* カスタムドロップダウン：アコーディオン（職業 → 役職） */
+.cs-acc-item { border-bottom: 1px solid var(--gray-lt); }
+.cs-acc-head { font-weight: 600; }
+.cs-acc-head[aria-expanded=true] { background: var(--light-bg); color: var(--primary); }
+.cs-acc-icon { color: var(--gray); transition: transform .2s; }
+.cs-acc-head[aria-expanded=true] .cs-acc-icon { transform: rotate(90deg); }
+/* 閉じている子は visibility:hidden（見えない・クリックできない）。開くと高さが伸びるアニメーション */
+.cs-acc-body { list-style: none; max-height: 0; overflow: hidden; visibility: hidden; transition: max-height .25s ease, visibility 0s .25s; background: #FCFBFD; }
+.cs-acc-body.open { max-height: 320px; visibility: visible; transition: max-height .25s ease, visibility 0s 0s; }
+.cs-acc-body .cs-option { padding-left: 30px; font-size: 13px; }
+.cs-acc-body .cs-option::before { content: "└"; color: var(--gray-bd); margin-right: 6px; }
+.cs-acc-body .cs-option { justify-content: flex-start; }

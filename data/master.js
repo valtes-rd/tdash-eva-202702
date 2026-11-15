@@ -95,15 +95,44 @@ const REGIONS = [
   { key: "chugoku-shikoku", name: "中国・四国", en: "Chugoku / Shikoku", prefs: [["鳥取県", "Tottori"], ["島根県", "Shimane"], ["岡山県", "Okayama"], ["広島県", "Hiroshima"], ["山口県", "Yamaguchi"], ["徳島県", "Tokushima"], ["香川県", "Kagawa"], ["愛媛県", "Ehime"], ["高知県", "Kochi"]] },
   { key: "kyushu-okinawa", name: "九州・沖縄", en: "Kyushu / Okinawa", prefs: [["福岡県", "Fukuoka"], ["佐賀県", "Saga"], ["長崎県", "Nagasaki"], ["熊本県", "Kumamoto"], ["大分県", "Oita"], ["宮崎県", "Miyazaki"], ["鹿児島県", "Kagoshima"], ["沖縄県", "Okinawa"]] },
 ];
+// 職業（12）→ 役職・区分（子の選択肢）。会員の occupation は "{職業key}/{役職key}"（例 "employee/manager"）
 const OCCUPATIONS = [
-  { key: "employee",  name: "会社員",           en: "Company employee" },
-  { key: "public",    name: "公務員",           en: "Public servant" },
-  { key: "self",      name: "自営業",           en: "Self-employed" },
-  { key: "student",   name: "学生",             en: "Student" },
-  { key: "parttime",  name: "パート・アルバイト", en: "Part-time" },
-  { key: "homemaker", name: "主婦・主夫",       en: "Homemaker" },
-  { key: "other",     name: "その他",           en: "Other" },
+  { key: "employee",  name: "会社員",               en: "Company employee", roles: [
+    ["staff", "一般社員", "Staff"], ["chief", "主任", "Chief"], ["sub", "係長", "Supervisor"], ["manager", "課長", "Manager"],
+    ["director", "部長", "Director"], ["officer", "役員", "Officer"]] },
+  { key: "executive", name: "会社経営者・役員",     en: "Executive", roles: [
+    ["ceo", "代表取締役", "CEO"], ["board", "取締役", "Board member"], ["exec", "執行役員", "Executive officer"], ["auditor", "監査役", "Auditor"]] },
+  { key: "public",    name: "公務員",               en: "Public servant", roles: [
+    ["staff", "一般職員", "Staff"], ["sub", "係長級", "Supervisor level"], ["manager", "課長級", "Manager level"], ["director", "部長級以上", "Director level or above"]] },
+  { key: "engineer",  name: "エンジニア・技術職",   en: "Engineer / Technical", roles: [
+    ["dev", "開発エンジニア", "Developer"], ["qa", "テスト・QAエンジニア", "QA engineer"], ["infra", "インフラエンジニア", "Infrastructure engineer"],
+    ["lead", "テックリード", "Tech lead"], ["pm", "プロジェクトマネージャー", "Project manager"]] },
+  { key: "professional", name: "専門職",           en: "Professional", roles: [
+    ["doctor", "医師", "Doctor"], ["nurse", "看護師", "Nurse"], ["lawyer", "弁護士", "Lawyer"], ["accountant", "税理士・会計士", "Tax accountant / CPA"],
+    ["designer", "デザイナー", "Designer"], ["other", "その他の専門職", "Other professional"]] },
+  { key: "teacher",   name: "教職員",               en: "Educator", roles: [
+    ["teacher", "教諭", "Teacher"], ["lecturer", "講師", "Lecturer"], ["professor", "教授・准教授", "Professor"], ["staff", "事務職員", "Administrative staff"]] },
+  { key: "self",      name: "自営業",               en: "Self-employed", roles: [
+    ["owner", "個人事業主", "Sole proprietor"], ["freelance", "フリーランス", "Freelancer"], ["family", "家族従事者", "Family worker"]] },
+  { key: "parttime",  name: "パート・アルバイト・派遣", en: "Part-time / Temporary", roles: [
+    ["part", "パート", "Part-timer"], ["arbeit", "アルバイト", "Casual worker"], ["dispatch", "派遣社員", "Temporary staff"], ["contract", "契約社員", "Contract employee"]] },
+  { key: "student",   name: "学生",                 en: "Student", roles: [
+    ["junior", "中学生", "Junior high school"], ["high", "高校生", "High school"], ["vocational", "専門学校生", "Vocational school"],
+    ["univ", "大学生", "University"], ["grad", "大学院生", "Graduate school"]] },
+  { key: "homemaker", name: "主婦・主夫",           en: "Homemaker", roles: [
+    ["full", "専業", "Full-time"], ["side", "パート等と兼業", "With a part-time job"]] },
+  { key: "unemployed", name: "無職・退職者",        en: "Not employed / Retired", roles: [
+    ["seeking", "求職中", "Job seeking"], ["retired", "退職者", "Retired"], ["other", "その他", "Other"]] },
+  { key: "other",     name: "その他",               en: "Other", roles: [
+    ["other", "その他", "Other"]] },
 ];
+// "employee/manager" → { occ, role }
+function _occupationOf(value) {
+  const [k, r] = String(value || "").split("/");
+  const occ = OCCUPATIONS.find(o => o.key === k);
+  const role = occ && occ.roles.find(x => x[0] === r);
+  return occ ? { occ, role } : null;
+}
 
 // ── エリア・会場 ───────────────────────────────────────────
 const AREAS = [
