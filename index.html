@@ -65,6 +65,15 @@
       <div class="h-scroll" id="gw-list"></div>
     </div>
 
+    <!-- 常設イベント（期限なし） -->
+    <div class="section" id="section-permanent">
+      <div class="section-title">
+        <span id="permanent-title" data-i18n-en="♾ Permanent Events (no end date)">♾ 常設イベント（期間の定めなし）</span>
+      </div>
+      <p class="gw-lead" id="permanent-lead" data-i18n-en="Regular shows and permanent exhibitions you can book any time — weekend comedy, Friday manzai, museums and more.">毎週・毎日開催の定期公演や常設展。週末のお笑い、金曜の漫才、ミュージアムなど、いつでも予約できます。</p>
+      <div class="h-scroll" id="permanent-list"></div>
+    </div>
+
     <div class="two-col" style="margin-bottom:40px">
       <!-- ランキング -->
       <div id="section-ranking">
@@ -101,6 +110,7 @@
       initHeroForm();
       renderGenreTiles();
       renderGW();
+      renderPermanent();
       renderRanking();
       renderNotice();
       renderHistory();
@@ -134,6 +144,12 @@
                   <span class="gt-count">${I18n.t(`${count}件`, `${count} events`)}</span>
                 </div>`;
       }).join("");
+    }
+
+    // 常設イベント（permanent）：人気順で全件
+    function renderPermanent() {
+      const list = EVENTS.filter(e => e.permanent).sort((a, b) => b.popularity - a.popularity);
+      document.getElementById("permanent-list").innerHTML = list.map(e => eventCardHtml(e, { idPrefix: "perm-" })).join("");
     }
 
     // GW特集：2027/04/29〜05/05 に公演があるイベント。GW限定（tags: "GW"）を先頭に、残りは人気順で計12件
