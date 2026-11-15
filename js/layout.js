@@ -409,9 +409,13 @@ function handleBuy(eventId, perfId) {
 }
 
 // ── カスタムチェックボックス（自動化難易度アップ用） ──────────
-// 本物の <input type="checkbox"> は opacity:0・pointer-events:none で隠し、見た目は .cc-box で描画する。
-// input を直接クリックすることはできない（上に重なる見た目の要素がクリックを受ける）→ ラベル（.cc）をクリックして切り替える。
-// 状態は input.checked のほか、ラベルの data-checked="true|false" でも取得できる。
+// 本物の <input type="checkbox"> は DOM 上にあるが CSS の opacity:0 で透明にし、見た目（☑）は .cc-box で描画する。
+// input は見た目の四角と同じ位置・同じ大きさにあるが、クリックは見た目の四角（＝ラベル）が受け取る（input は pointer-events:none）。
+//  ・表示判定（is_displayed / Element Should Be Visible）は false → 表示待ちするツール（T-DASH 等）は「Not visible」で失敗
+//  ・Selenium / Robot Framework の通常クリックは「element click intercepted」、Playwright の check() はタイムアウトで失敗
+//  ・ActionChains（Robot Framework なら Click Element の action_chain=True）で input の座標をクリックすると、
+//    その位置の見た目の四角（ラベル）がクリックされてチェックが切り替わる
+// 状態は input.checked（Checkbox Should Be Selected）または ラベルの data-checked="true|false" で検証できる。
 // kind: "box"（四角いチェック） / "switch"（トグルスイッチ）
 function customCheckHtml({ id, name, value = "on", label, checked = false, kind = "box" }) {
   return `<label class="cc cc--${kind}" id="${id}-label" for="${id}" data-checked="${checked}">
@@ -501,4 +505,86 @@ const CustomSelect = (() => {
   document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
 
   return { init, toggle, open, close, drill, select };
+})();
+
+// ── 郵便番号 → 住所サジェスト（外部APIは使わない） ──────────
+// 内部データ data/zip/{上3桁}.json（日本郵便の郵便番号データから tools/build-zipdata.py で生成）を参照する。
+// 3桁以上入力すると「住所を検索中…」を表示し、1〜2秒後に前方一致する候補を最大10件表示。選ぶと onSelect が呼ばれる。
+//  候補ボックス: #{box}[data-state="loading|ready|empty|error"][data-count]
+//  候補      : li.postal-suggest-item #postal-suggest-item-{n}（data-zip / data-address / data-pref）
+//  ほかの件数: #postal-suggest-more ／ 該当なし: #postal-suggest-empty ／ 検索中: #postal-suggest-loading
+const PostalSuggest = (() => {
+  const shards = {};   // 上3桁 → Promise<データ>
+  const MAX = 10;
+  let cfg = null, timer = null, token = 0, items = [];
+
+  function load(key) {
+    if (!shards[key]) shards[key] = fetch(`data/zip/${key}.json`).then(r => (r.ok ? r.json() : null)).catch(() => { delete shards[key]; return undefined; });
+    return shards[key];
+  }
+
+  function attach(c) {
+    cfg = c;
+    const input = document.getElementById(c.input);
+    input.addEventListener("input", onInput);
+    document.addEventListener("click", e => { if (!document.getElementById(c.box).contains(e.target) && e.target !== input) hide(); });
+    input.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+  }
+
+  function box() { return document.getElementById(cfg.box); }
+  function hide() { if (!cfg) return; token++; clearTimeout(timer); box().classList.add("hidden"); }
+
+  function onInput() {
+    const input = document.getElementById(cfg.input);
+    const digits = input.value.replace(/\D/g, "").slice(0, 7);
+    // 4桁目以降はハイフンを自動挿入（123-4567）
+    const formatted = digits.length > 3 ? digits.slice(0, 3) + "-" + digits.slice(3) : digits;
+    if (input.value !== formatted && /^[\d-]*$/.test(input.value)) input.value = formatted;
+    clearTimeout(timer);
+    if (digits.length < 3) { hide(); return; }
+    const my = ++token;
+    // 入力が変わったら古い候補はすぐ消して「検索中」にする（古い候補を選べないように）
+    const b = box();
+    b.classList.remove("hidden");
+    b.dataset.state = "loading"; b.dataset.count = "";
+    b.innerHTML = `<div class="postal-suggest-msg" id="postal-suggest-loading"><span class="spinner spinner-sm"></span>${I18n.t("住所を検索中…", "Searching addresses…")}</div>`;
+    timer = setTimeout(() => search(digits, my), 300);
+  }
+
+  function search(digits, my) {
+    const b = box();
+    const wait = new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));   // 検索に1〜2秒かかる
+    Promise.all([load(digits.slice(0, 3)), wait]).then(([data]) => {
+      if (my !== token) return;   // 入力が変わった古い検索結果は捨てる
+      if (data === undefined) {
+        b.dataset.state = "error";
+        b.innerHTML = `<div class="postal-suggest-msg" id="postal-suggest-error">${I18n.t("住所データを読み込めませんでした（HTTPで配信してください）", "Could not load address data (serve over HTTP)")}</div>`;
+        return;
+      }
+      items = [];
+      if (data) Object.keys(data.a).filter(z => z.startsWith(digits)).sort().forEach(z =>
+        data.a[z].forEach(([p, c, town]) => items.push({ zip: z, pref: data.p[p], city: data.c[c], town, address: data.p[p] + data.c[c] + town })));
+      b.dataset.count = items.length;
+      if (!items.length) {
+        b.dataset.state = "empty";
+        b.innerHTML = `<div class="postal-suggest-msg" id="postal-suggest-empty">${I18n.t("該当する住所が見つかりません", "No matching address")}</div>`;
+        return;
+      }
+      b.dataset.state = "ready";
+      const fmt = z => z.slice(0, 3) + "-" + z.slice(3);
+      b.innerHTML = `<ul class="postal-suggest-list" id="postal-suggest-list">${items.slice(0, MAX).map((it, i) =>
+        `<li role="option" class="postal-suggest-item" id="postal-suggest-item-${i + 1}" data-zip="${it.zip}" data-pref="${it.pref}" data-address="${it.address}"
+           onclick="PostalSuggest.choose(${i})"><span class="ps-zip">〒${fmt(it.zip)}</span><span class="ps-addr">${it.address}</span></li>`).join("")}</ul>` +
+        (items.length > MAX ? `<div class="postal-suggest-more" id="postal-suggest-more">${I18n.t(`ほか ${items.length - MAX} 件（続けて入力すると絞り込めます）`, `${items.length - MAX} more (keep typing to narrow down)`)}</div>` : "");
+    });
+  }
+
+  function choose(i) {
+    const it = items[i]; if (!it) return;
+    document.getElementById(cfg.input).value = it.zip.slice(0, 3) + "-" + it.zip.slice(3);
+    hide();
+    if (cfg.onSelect) cfg.onSelect(it);
+  }
+
+  return { attach, choose, hide };
 })();

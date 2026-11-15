@@ -129,6 +129,8 @@ ticket-market/
 | ⏳ Loading演出 | ログインで0.5〜1.5秒、検索・空席確認・購入確定・会員登録で3〜5秒のオーバーレイ（操作ロック） |
 | 🕒 ヘッダー日時 | ヘッダー右端に現在の年月日・時分（1分ごと更新）と天気マーク（ランダム・デモ用）。スマホ幅は時刻と天気のみ |
 | 🧩 会員登録の入力部品 | お住まいの地域（地方→都道府県のカスタムドリルダウン・必須）、職業（カスタムドロップダウン・必須）、興味のあるジャンル（カスタムチェックボックス・複数）、メルマガ（トグルスイッチ）、規約同意（カスタムチェックボックス）。自動化の難易度を上げるため標準の select / checkbox をそのまま操作できない作り |
+| 📮 郵便番号サジェスト | 会員登録で郵便番号を3桁以上入力すると「住所を検索中…」→ **1〜2秒後**に前方一致の候補（最大10件）を表示。選ぶと郵便番号（ハイフン付き）・住所・お住まいの地域を自動入力。データは日本郵便の郵便番号データ（2026/10/23版・12万721件）を `data/zip/` に内部保持（外部APIは使わない） |
+| 🏆 人気ランキング | TOPの人気ランキングは上位3位が表示のたびにランダムに入れ替わる（4〜10位は人気順で固定） |
 | 🌐 英語表示 | `?lang=en` または ヘッダーの EN ボタン |
 
 ---
@@ -145,6 +147,7 @@ ticket-market/
 8. 手数料：システム利用料 ¥330/枚（有料券）、コンビニ発券 ¥110/枚、配送 ¥880/件、コンビニ払い ¥220
 9. お知らせはユーザーごとに受信・既読状態を保持。購入完了・抽選申込受付・キャンセル・抽選申込取消・会員登録時に自動で届く（未読）
 10. 新着モーダルは**お知らせ画面（ヘッダー「🔔 お知らせ」／マイページ「お知らせ」タブ）を開いたとき**、未読があれば表示。他の画面ではヘッダーのバッジで未読数を通知
+11. 会員登録の必須項目は 氏名・メールアドレス・パスワード（確認）・お住まいの地域・職業・規約同意。**フリガナ・電話番号・生年月日・郵便番号・住所は任意**（入力した場合のみ形式チェック。生年月日は13歳以上）
 
 ---
 
@@ -175,8 +178,9 @@ Demo-Travel と同様、XPath/CSS で安定して要素を特定できるよう 
 | お知らせ一覧（マイページ） | `#tab-notices` / `#tab-notice-badge` / `#count-notices` / `#notice-filter-all\|unread\|campaign\|ticket\|lottery\|info` / `.notice-item[data-notice-id][data-read="false"][data-category]` / `#btn-notice-read-all` / 空 `#no-notices` |
 | ページャー（下部 / 上部） | `#pager[data-current][data-total]` / `#pager-prev` `#pager-next` `#pager-first` `#pager-last` / `#pager-page-3`（`.pager-page[data-page="3"]`、現在ページは `.active`）。上部は `#pager-top` 内で接頭辞 `pager-top-`（例 `#pager-top-next`） |
 | 表示範囲 | `#result-range`（例「261件中 21〜40件を表示」）/ `#result-count` / `#event-results[data-page]` |
-| 会員登録：カスタムチェックボックス | `<input type="checkbox">` は **opacity:0・pointer-events:none** で隠しているため直接クリック不可（Playwright の `check('#r-agree')` はタイムアウト、Selenium は not interactable）。ラベル `#r-agree-label` / `#r-interest-{ジャンルID}-label` / `#r-newsletter-label` をクリックする。状態は `input.checked` またはラベルの `data-checked="true|false"` |
+| 会員登録：カスタムチェックボックス | [Qiita記事](https://qiita.com/emurin/items/bfc985c35f215f4a48d2) と同じ難易度。`<input type="checkbox">` は DOM 上にあるが **opacity:0** で透明、見た目の四角（`.cc-box`）がクリックを受ける。`Element Should Be Visible` / `is_displayed()` は false（表示待ちするツールは「Not visible」）、通常クリックは `element click intercepted`、Playwright の `check()` はタイムアウト。**ActionChains**（Robot Framework: `Click Element  id:r-agree  action_chain=True`）なら操作でき、検証は `Checkbox Should Be Selected  id:r-agree`。対象: `#r-agree` / `#r-interest-{ジャンルID}` / `#r-newsletter`（ラベル `#…-label` の `data-checked` でも確認可）。サンプル: `samples/register_checkbox.robot` |
 | 会員登録：カスタムドロップダウン | `<select>` ではない。トリガー `#dd-region-trigger` / `#dd-occupation-trigger`（`aria-expanded`）をクリック → 約0.3秒「読み込み中…」の後に選択肢を描画。お住まいの地域は **地方 → 都道府県のドリルダウン**：`#dd-region-group-kanto` → `#dd-region-opt-東京都`（戻る `#dd-region-back`）。職業は `#dd-occupation-opt-student` 等。選択値は hidden の `#r-pref` / `#r-occupation` とトリガーの `data-value` |
+| 会員登録：郵便番号サジェスト | 入力 `#r-postal`（4桁目以降は自動でハイフン）→ `#postal-suggest[data-state="loading"]`（`#postal-suggest-loading`）→ 1〜2秒後 `data-state="ready"`・`data-count`（候補総数）。候補 `#postal-suggest-item-{n}`（`data-zip` / `data-address` / `data-pref`）、ほかの件数 `#postal-suggest-more`、該当なし `data-state="empty"`（`#postal-suggest-empty`）。選択後 `#r-address` と `#r-pref`（お住まいの地域）に自動入力 |
 | ローディング | `#loading-overlay`（消えるまで待機） |
 
 `<option>` / 行要素の `data-availability` は `ok`（◎）/ `few`（△）/ `soldout`（×）/ `closed`（受付終了）。
@@ -194,3 +198,17 @@ Demo-Travel と同様、XPath/CSS で安定して要素を特定できるよう 
 
 本デモサイトは株式会社バルテスの内部デモ・テスト目的のみに使用されます。
 掲載されているすべてのイベント名・出演者・団体名・会場名・料金・座席情報は架空のフィクションであり、実在の人物・団体・施設とは一切関係ありません。
+
+
+---
+
+## 📮 郵便番号データ
+
+`data/zip/{郵便番号の上3桁}.json`（948ファイル・約6MB）に、日本郵便「住所の郵便番号（1レコード1行、UTF-8形式）」（2026/10/23版）から作った郵便番号→住所の対応を持っています（`data/zip/meta.json` に版と件数）。必要な上3桁のファイルだけを読み込みます（HTTP配信が必要）。
+町域名は住所入力用に整形しています（「以下に掲載がない場合」等は空、（…）の注記は除去）。郵便番号データは日本郵便株式会社が著作権を主張しておらず自由に配布できます。
+
+更新する場合は、日本郵便のサイトから `utf_ken_all.zip` をダウンロードして次を実行します。
+
+```bash
+python tools/build-zipdata.py utf_ken_all.zip 2026-10-23   # 2番目の引数はデータの年月日
+```

@@ -479,6 +479,7 @@ button, input, select, textarea { font-family: inherit; }
 /* ── カスタムチェックボックス（input は opacity:0 で隠す） ── */
 .cc { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; user-select: none; }
 .cc input[type=checkbox] { position: absolute; left: 0; top: 50%; width: 20px; height: 20px; margin: -10px 0 0; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.cc--switch input[type=checkbox] { width: 40px; height: 22px; margin-top: -11px; }
 .cc-box { width: 20px; height: 20px; flex-shrink: 0; border: 2px solid var(--gray-bd); border-radius: 5px; background: var(--white); position: relative; transition: .15s; }
 .cc input:checked + .cc-box { background: var(--primary); border-color: var(--primary); }
 .cc input:checked + .cc-box::after { content: ""; position: absolute; left: 5px; top: 1px; width: 6px; height: 11px; border: solid var(--white); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
@@ -511,3 +512,14 @@ button, input, select, textarea { font-family: inherit; }
 .cs-back { width: 100%; text-align: left; background: var(--gray-lt); border: none; border-bottom: 1px solid var(--gray-bd); padding: 9px 14px; font-size: 13px; font-weight: 700; color: var(--accent); cursor: pointer; position: sticky; top: 0; font-family: inherit; }
 .form-label-text { font-size: 13px; font-weight: 600; color: var(--text); }
 .gw-lead { font-size: 13px; color: var(--gray); margin: -6px 0 12px; }
+
+/* ── 郵便番号サジェスト ── */
+.postal-wrap { position: relative; }
+.postal-suggest { position: absolute; left: 0; top: calc(100% + 4px); width: max(100%, 340px); z-index: 500; background: var(--white); border: 1px solid var(--gray-bd); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.15); max-height: 300px; overflow-y: auto; }
+.postal-suggest-msg { padding: 10px 14px; font-size: 13px; color: var(--gray); display: flex; align-items: center; gap: 8px; }
+.postal-suggest-list { list-style: none; }
+.postal-suggest-item { padding: 8px 14px; cursor: pointer; display: flex; gap: 10px; font-size: 13px; border-bottom: 1px solid var(--gray-lt); }
+.postal-suggest-item:hover { background: var(--light-bg); color: var(--primary); }
+.ps-zip { color: var(--gray); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.postal-suggest-more { padding: 8px 14px; font-size: 12px; color: var(--gray); background: var(--gray-lt); }
+.spinner-sm { width: 14px; height: 14px; border-width: 2px; }

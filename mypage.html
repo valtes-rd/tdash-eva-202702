@@ -91,10 +91,10 @@
       const pane = document.getElementById("pane-profile");
       const fields = [
         ["name",         I18n.t("氏名", "Name"),           u.name],
-        ["kana",         I18n.t("氏名（フリガナ）", "Name (Katakana)"), u.kana],
+        ["kana",         I18n.t("氏名（フリガナ）", "Name (Katakana)"), u.kana || "-"],
         ["email",        I18n.t("メールアドレス", "Email"), u.email],
-        ["phone",        I18n.t("電話番号", "Phone"),       u.phone],
-        ["birthdate",    I18n.t("生年月日", "Date of birth"), App.fmtDateSlash(u.birthdate)],
+        ["phone",        I18n.t("電話番号", "Phone"),       u.phone || "-"],
+        ["birthdate",    I18n.t("生年月日", "Date of birth"), App.fmtDateSlash(u.birthdate) || "-"],
         ["postal",       I18n.t("郵便番号", "Postal code"), u.postal ? "〒" + u.postal : "-"],
         ["address",      I18n.t("住所", "Address"),         u.address || "-"],
         ["card",         I18n.t("登録クレジットカード", "Registered card"), u.card ? `**** **** **** ${u.card}` : I18n.t("未登録", "Not registered")],
@@ -149,8 +149,8 @@
       const d = { name: v("name"), kana: v("kana"), email: v("email"), phone: v("phone"), postal: v("postal"), address: v("address") };
       const card = v("card").replace(/[\s-]/g, "");
       const checks = [
-        ["name", !!d.name], ["kana", /^[ァ-ヶー　 ]+$/.test(d.kana)],
-        ["email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)], ["phone", /^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(d.phone)],
+        ["name", !!d.name], ["kana", !d.kana || /^[ァ-ヶー　 ]+$/.test(d.kana)],
+        ["email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)], ["phone", !d.phone || /^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(d.phone)],
         ["postal", !d.postal || /^\d{3}-\d{4}$/.test(d.postal)], ["card", !card || /^\d{16}$/.test(card)],
       ];
       let ok = true;

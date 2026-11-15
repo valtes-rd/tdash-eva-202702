@@ -182,6 +182,8 @@
 
     function renderRanking() {
       const list = [...EVENTS].sort((a, b) => b.popularity - a.popularity).slice(0, 10);
+      // 上位3位は表示のたびにランダムに入れ替わる（4位以下は人気順で固定）
+      for (let i = 2; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
       document.getElementById("rank-list").innerHTML = list.map((e, i) => rankItem(e, i, "rank", App.fmtPeriod(e))).join("");
     }
 

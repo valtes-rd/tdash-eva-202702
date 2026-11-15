@@ -25,7 +25,7 @@
           <span class="error-msg" data-i18n-en="Required">必須項目です</span>
         </div>
         <div class="form-group" id="g-kana">
-          <label for="r-kana"><span data-i18n-en="Name (Katakana)">氏名（フリガナ）</span><span class="req">*</span></label>
+          <label for="r-kana" data-i18n-en="Name (Katakana, optional)">氏名（フリガナ・任意）</label>
           <input type="text" id="r-kana" placeholder="ヤマダ タロウ">
           <span class="error-msg" data-i18n-en="Please enter in full-width katakana">全角カタカナで入力してください</span>
         </div>
@@ -47,12 +47,12 @@
           <span class="error-msg" data-i18n-en="Passwords do not match">パスワードが一致しません</span>
         </div>
         <div class="form-group" id="g-phone">
-          <label for="r-phone"><span data-i18n-en="Phone">電話番号</span><span class="req">*</span></label>
+          <label for="r-phone" data-i18n-en="Phone (optional)">電話番号（任意）</label>
           <input type="tel" id="r-phone" placeholder="090-1234-5678">
           <span class="error-msg" data-i18n-en="Format: 090-1234-5678">090-1234-5678 の形式で入力してください</span>
         </div>
         <div class="form-group" id="g-birth">
-          <label for="r-birth"><span data-i18n-en="Date of Birth">生年月日</span><span class="req">*</span></label>
+          <label for="r-birth" data-i18n-en="Date of Birth (optional)">生年月日（任意）</label>
           <div class="date-input-wrap">
             <input type="text" id="r-birth" placeholder="yyyy/mm/dd" maxlength="10" oninput="autoFormatDate(this)">
             <div class="dp-btn" id="r-birth-cal-btn" onclick="openDatePicker('r-birth')">📅</div>
@@ -61,7 +61,11 @@
         </div>
         <div class="form-group" id="g-postal">
           <label for="r-postal" data-i18n-en="Postal Code (optional)">郵便番号（任意）</label>
-          <input type="text" id="r-postal" placeholder="123-4567" maxlength="8">
+          <div class="postal-wrap" id="postal-wrap">
+            <input type="text" id="r-postal" placeholder="123-4567" maxlength="8" autocomplete="off" inputmode="numeric">
+            <div class="postal-suggest hidden" id="postal-suggest" role="listbox"></div>
+          </div>
+          <span class="hint" data-i18n-en="Enter 3+ digits to see address suggestions">3桁以上入力すると住所の候補が表示されます</span>
           <span class="error-msg" data-i18n-en="Format: 123-4567">123-4567 の形式で入力してください</span>
         </div>
         <div class="form-group" id="g-address">
@@ -116,6 +120,12 @@
         customCheckHtml({ id: "r-interest-" + g.id, name: "r-interest", value: g.id, label: `${g.emoji} ${I18n.t(g.name, g.en)}` })).join("");
       document.getElementById("r-newsletter-wrap").innerHTML = customCheckHtml({ id: "r-newsletter", kind: "switch", checked: true,
         label: I18n.t("お得なキャンペーン情報をメールで受け取る", "Receive campaign news by email") });
+      // 郵便番号 → 住所サジェスト（内部データ data/zip/ を参照、1〜2秒かかる）。選ぶと住所と「お住まいの地域」を自動入力
+      PostalSuggest.attach({ input: "r-postal", box: "postal-suggest", onSelect: c => {
+        document.getElementById("r-address").value = c.address;
+        CustomSelect.select("dd-region", c.pref);
+      } });
+
       document.getElementById("g-agree").innerHTML = customCheckHtml({ id: "r-agree",
         label: I18n.t("利用規約・プライバシーポリシーに同意します（デモ）", "I agree to the Terms of Use and Privacy Policy (demo).") });
     });
@@ -141,12 +151,12 @@
       const age = d.birthdate ? (App.today() - new Date(d.birthdate + "T00:00:00")) / (365.25 * 86400000) : 0;
       const checks = [
         ["g-name", !!d.name],
-        ["g-kana", /^[ァ-ヶー　 ]+$/.test(d.kana)],
+        ["g-kana", !d.kana || /^[ァ-ヶー　 ]+$/.test(d.kana)],
         ["g-email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)],
         ["g-pw", pwRules(d.password).every(Boolean)],
         ["g-pw2", !!d.pw2 && d.password === d.pw2],
-        ["g-phone", /^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(d.phone)],
-        ["g-birth", !!d.birthdate && age >= 13 && age < 120],
+        ["g-phone", !d.phone || /^0\d{1,4}-\d{1,4}-\d{3,4}$/.test(d.phone)],
+        ["g-birth", !v("r-birth") || (!!d.birthdate && age >= 13 && age < 120)],
         ["g-postal", !d.postal || /^\d{3}-\d{4}$/.test(d.postal)],
         ["g-pref", !!d.pref],
         ["g-occupation", !!d.occupation],
