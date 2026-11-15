@@ -370,6 +370,8 @@ function eventCardHtml(e, opts = {}) {
       <span class="badge badge-genre event-genre" data-genre="${e.genre}">${App.genreName(e.genre)}</span>
       <span class="badge badge-gray event-sub">${App.subName(e.sub)}</span>
       ${e.saleType === "lottery" ? `<span class="badge badge-purple">${_t("抽選", "Lottery")}</span>` : ""}
+      ${e.permanent ? `<span class="badge badge-success event-permanent">${_t("常設", "Permanent")}</span>` : ""}
+      ${e.tags.includes("GW") ? `<span class="badge badge-warn event-gw">${_t("GW限定", "GW only")}</span>` : ""}
     </div>
     <div class="event-card-title event-title">${e.title}</div>
     <div class="event-card-performer event-performer">${e.performer}</div>

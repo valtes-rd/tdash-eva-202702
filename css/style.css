@@ -510,3 +510,4 @@ button, input, select, textarea { font-family: inherit; }
 .cs-chevron { color: var(--gray); font-size: 16px; }
 .cs-back { width: 100%; text-align: left; background: var(--gray-lt); border: none; border-bottom: 1px solid var(--gray-bd); padding: 9px 14px; font-size: 13px; font-weight: 700; color: var(--accent); cursor: pointer; position: sticky; top: 0; font-family: inherit; }
 .form-label-text { font-size: 13px; font-weight: 600; color: var(--text); }
+.gw-lead { font-size: 13px; color: var(--gray); margin: -6px 0 12px; }

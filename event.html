@@ -90,7 +90,7 @@
             <div id="event-performer" style="color:var(--gray);margin-bottom:12px">${e.performer}</div>
             <p id="event-desc" style="font-size:15px;line-height:1.8;margin-bottom:18px">${e.desc}</p>
             <dl class="info-list card" style="padding:16px 18px" id="event-info">
-              <dt>${_t("開催期間", "Period")}</dt><dd id="info-period">${App.fmtPeriod(e)}（${_t(`全${e.perfs.length}公演`, `${e.perfs.length} performances`)}）</dd>
+              <dt>${_t("開催期間", "Period")}</dt><dd id="info-period" data-permanent="${!!e.permanent}">${App.fmtPeriod(e)}（${e.permanent ? _t("期間の定めなし", "no end date") : _t(`全${e.perfs.length}公演`, `${e.perfs.length} performances`)}）</dd>
               <dt>${_t("会場", "Venue")}</dt><dd id="info-venue">${venues.map(v => `${App.venueName(v)} <span class="muted">（${App.getVenue(v).city}）</span>`).join("<br>")}</dd>
               <dt>${_t("エリア", "Area")}</dt><dd id="info-area">${App.eventAreas(e).map(App.areaName).join("・")}</dd>
               <dt>${_t("販売方式", "Sales type")}</dt><dd id="info-sale-type">${e.saleType === "lottery" ? _t("抽選販売", "Lottery") : _t("先着販売", "First come, first served")}</dd>

@@ -4,18 +4,30 @@
 // ============================================================
 
 // ── 日付基準 ───────────────────────────────────────────────
-// 公演日は「今週の日曜日」を基準日(offset=0)として生成する。
-// → 曜日は常に固定（offset 6 = 土曜, 7 = 日曜）。週が変わると日付も1週間進む。
-const BASE_DATE = (() => {
-  const d = new Date(); d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay());
-  return d;
-})();
+// 公演日は固定の基準日 2027/03/28（日）を offset=0 として生成する（offset 6 = 土曜, 7 = 日曜）。
+// テストデータの期限を 2027年3月末以降にするため、日付は固定（週ごとに進まない）。
+//   ・1日だけの公演は offset 3 以上（2027/03/31 以降）。GW特集は 2027/04/29〜05/05（offset 32〜38）
+//   ・受付終了のテスト用イベントは過去（2026年9〜10月）に固定
+// 常設イベント（permanent）だけは「今日」を基準に、過去8週〜120日後の公演を毎回生成する。
+const BASE_DATE = new Date(2027, 2, 28);
+const GW_FROM = "2027-04-29", GW_TO = "2027-05-05";
+const _TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
 
-function _offsetDate(offset) {
-  const d = new Date(BASE_DATE); d.setDate(d.getDate() + offset);
-  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
+function _ymd(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function _offsetDate(offset) { const d = new Date(BASE_DATE); d.setDate(d.getDate() + offset); return _ymd(d); }
+
+// 常設イベントの公演（今日の8週前〜120日後）。rule: { dows:[曜日], times:[...], nthSunday?:1（毎月第n日曜） }
+// 公演IDは日付ベース（{イベントID}-{yyyymmdd}-{hhmm}）なので日が変わっても同じ公演は同じID
+function _permanent(rule, open) {
+  const list = [];
+  for (let i = -56; i <= 120; i++) {
+    const d = new Date(_TODAY); d.setDate(d.getDate() + i);
+    const ok = rule.nthSunday ? d.getDay() === 0 && Math.ceil(d.getDate() / 7) === rule.nthSunday : rule.dows.includes(d.getDay());
+    if (!ok) continue;
+    const date = _ymd(d);
+    rule.times.forEach(t => list.push({ date, start: t, open: _minus(t, open === undefined ? 30 : open), id: date.replace(/-/g, "") + "-" + t.replace(":", "") }));
+  }
+  return list;
 }
 
 // ── テストユーザー（5名） ──────────────────────────────────
@@ -267,7 +279,7 @@ function _run(from, days, times, skipDow = [1]) {
 // ── イベント定義ヘルパー ───────────────────────────────────
 // opt: maxPerOrder(1申込上限) / cancellable / saleType("first"|"lottery") / salesStartOffset /
 //      lotteryEndOffset / lotteryResultOffset / soldOutDow / soldOutSeats / soldOutAll /
-//      fewLeft / requireAdult / popularity / notes / tags
+//      fewLeft / requireAdult / popularity / notes / tags / permanent（常設：{ ja, en } 開催パターンの表示文）
 function _ev(id, genre, sub, title, performer, venue, tpl, perfs, desc, opt = {}) {
   const e = Object.assign({
     id, genre, sub, title, performer, venue, tpl, desc,
@@ -276,11 +288,11 @@ function _ev(id, genre, sub, title, performer, venue, tpl, perfs, desc, opt = {}
     soldOutDow: [], soldOutSeats: [], soldOutAll: false, fewLeft: false,
     requireAdult: false, popularity: 50, notes: [], tags: [],
   }, opt);
-  e.perfs = perfs.slice().sort((a, b) => a.offset - b.offset || a.start.localeCompare(b.start)).map((pf, i) => ({
-    id: `${id}-p${String(i + 1).padStart(2, "0")}`,
-    offset: pf.offset, date: _offsetDate(pf.offset),
-    open: pf.open, start: pf.start, venue: pf.venue || venue,
-  }));
+  e.perfs = perfs.map(pf => ({ ...pf, date: pf.date || _offsetDate(pf.offset) }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start)).map((pf, i) => ({
+      id: pf.id ? `${id}-${pf.id}` : `${id}-p${String(i + 1).padStart(2, "0")}`,
+      date: pf.date, open: pf.open, start: pf.start, venue: pf.venue || venue,
+    }));
   return e;
 }
 
@@ -576,8 +588,8 @@ EVENTS.push(...(() => {
           : sp.troupe ? pick(_GEN_TROUPES) : sp.org ? `${a}${sp.org}` : a;
         const venue = pick(sp.venues);
         const open = t => (sp.open ? _minus(t, sp.open) : undefined);
-        // 公演: 約1割は過去のみ（受付終了）、それ以外は今後 3〜70日
-        const start = rnd() < 0.08 ? -20 + Math.floor(rnd() * 15) : 3 + Math.floor(rnd() * 60);
+        // 約8%は受付終了のテスト用（2026年9〜10月に固定）、それ以外は 2027/03/31 以降
+        const start = rnd() < 0.08 ? -200 + Math.floor(rnd() * 15) : 3 + Math.floor(rnd() * 60);
         let perfs;
         if (sp.run) perfs = _run(start, 5 + Math.floor(rnd() * 10), sp.times);
         else {
@@ -595,6 +607,54 @@ EVENTS.push(...(() => {
   });
   return list;
 })());
+
+// ── 常設イベント（期限なし・e901〜e905） ───────────────────
+// 公演は「今日」の8週前〜120日後を毎回生成（_permanent）。一覧の期間表示は permanent の文言
+EVENTS.push(
+  _ev("e901", "stage", "お笑い", "週末お笑いライブ「バルテス寄席」", "バルテス芸人一座（架空）", "v-tk-theater", "comedy",
+    _permanent({ dows: [0, 6], times: ["13:00", "17:00"] }),
+    "毎週土日開催の定期お笑いライブ。若手からベテランまで日替わりで出演します。",
+    { permanent: { ja: "常設：毎週土・日 13:00／17:00", en: "Permanent: every Sat & Sun 1pm / 5pm" }, popularity: 58, tags: ["常設"], notes: ["毎週土日の定期公演です（終了日なし）"] }),
+  _ev("e902", "stage", "お笑い", "漫才ナイト 金曜定期公演", "なにわ漫才倶楽部（架空）", "v-os-theater", "comedy",
+    _permanent({ dows: [5], times: ["19:30"] }),
+    "仕事帰りに楽しめる金曜夜の漫才ライブ。毎週出演者が変わります。",
+    { permanent: { ja: "常設：毎週金曜 19:30", en: "Permanent: every Friday 7:30pm" }, popularity: 47, tags: ["常設"], notes: ["毎週金曜の定期公演です（終了日なし）"] }),
+  _ev("e903", "event", "展示会・博覧会", "常設展「テスト自動化ミュージアム」", "株式会社バルテス（架空）", "v-tk-bigsq", "expo",
+    _permanent({ dows: [0, 2, 3, 4, 5, 6], times: ["10:00"] }, 30),
+    "ソフトウェアテストの歴史と自動化ツールを体験できる常設ミュージアム。月曜休館。",
+    { permanent: { ja: "常設：毎日 10:00〜（月曜休館）", en: "Permanent: daily from 10am (closed Mon)" }, popularity: 44, tags: ["常設"], notes: ["月曜日は休館です"] }),
+  _ev("e904", "event", "体験・ワークショップ", "デジタルアートミュージアム「ひかりの森」", "ひかりの森運営委員会（架空）", "v-os-messe", "expo",
+    _permanent({ dows: [0, 1, 2, 3, 4, 5, 6], times: ["10:00"] }, 0),
+    "光と音に包まれる体験型の常設デジタルアート展。毎日開館しています。",
+    { permanent: { ja: "常設：毎日 10:00〜", en: "Permanent: daily from 10am" }, popularity: 52, tags: ["常設"] }),
+  _ev("e905", "market", "古書・レコード", "毎月第1日曜 古本・レコード市", "博多古書組合（架空）", "v-fk-messe", "records",
+    _permanent({ nthSunday: 1, times: ["11:00"] }, 120),
+    "毎月第1日曜日に開かれる定期の古本・レコード市。早割入場は9:00から。",
+    { permanent: { ja: "常設：毎月第1日曜 11:00", en: "Permanent: 1st Sunday of every month, 11am" }, popularity: 30, tags: ["常設"] }),
+);
+
+// ── GW特集（2027/04/29〜05/05・e910〜e915） ────────────────
+EVENTS.push(
+  _ev("e910", "event", "フェス", "GWこどもまつり 2027", "GWこどもまつり実行委員会（架空）", "v-ng-messe", "family",
+    [_perf(32, "10:00", "09:30"), _perf(36, "10:00", "09:30"), _perf(37, "10:00", "09:30"), _perf(38, "10:00", "09:30")],
+    "ゴールデンウィーク限定の親子向けフェス。こどもの日はこいのぼり工作も。",
+    { requireAdult: true, maxPerOrder: 8, popularity: 68, tags: ["GW"], notes: ["子供券のみの購入はできません"] }),
+  _ev("e911", "concert", "J-POP", "GOLDEN WEEK SPECIAL LIVE 2027", "GW SPECIAL BAND（架空）", "v-tk-arena", "concert",
+    [_perf(36, "17:00"), _perf(37, "17:00")],
+    "大型連休だけのスペシャルライブ。2日間で異なるセットリスト。", { popularity: 70, tags: ["GW"] }),
+  _ev("e912", "sports", "野球", "湾岸シーガルズ GW3連戦", "湾岸シーガルズ vs なにわブレイブス", "v-tk-dome", "baseball",
+    [_perf(36, "14:00"), _perf(37, "14:00"), _perf(38, "13:00")],
+    "ゴールデンウィークの3連戦。こどもの日は小学生以下にグッズプレゼント。", { maxPerOrder: 6, popularity: 66, tags: ["GW"] }),
+  _ev("e913", "event", "展示会・博覧会", "ゴールデンウィーク 恐竜博 2027", "恐竜博実行委員会（架空）", "v-os-messe", "expo",
+    [32, 33, 34, 35, 36, 37, 38].map(o => _perf(o, "10:00", "09:30")),
+    "全長20mの全身骨格が大集合。GW期間中は毎日開催。", { popularity: 64, tags: ["GW"] }),
+  _ev("e914", "market", "ハンドメイド", "GWハンドメイドマルシェ", "ハンドメイドマルシェ実行委員会（架空）", "v-fk-messe", "handmade",
+    [_perf(34, "10:00", "09:30"), _perf(35, "10:00", "09:30")],
+    "九州の作家200組が集まるGW限定のハンドメイドマーケット。", { popularity: 40, tags: ["GW"] }),
+  _ev("e915", "stage", "ミュージカル", "GW親子ミュージカル「こいのぼりの空」", "劇団あおぞら（架空）", "v-tk-theater", "musical",
+    [36, 37, 38].flatMap(o => [_perf(o, "11:00", "10:30"), _perf(o, "15:00", "14:30")]),
+    "親子で楽しめるゴールデンウィーク限定のミュージカル。", { maxPerOrder: 6, popularity: 62, tags: ["GW"] }),
+);
 
 // ── 購入ステータス ─────────────────────────────────────────
 const ORDER_STATUS = {
@@ -617,7 +677,7 @@ const PAYMENT_METHODS = [
 ];
 
 // ── サンプル購入履歴（初回起動時のみ投入） ─────────────────
-// perfOffset: 基準日からの日数（過去公演は観覧済み表示になる）
+// perfIdx: 公演の並び順（"past" は今日より前の直近の公演）/ createdOffset: 今日からの日数（購入日）
 // noticeUnread: true の注文は「購入完了／抽選申込受付」のお知らせが未読のまま届いている
 const SAMPLE_ORDERS_DEF = [
   { userId: "u001", eventId: "e101", perfIdx: 0, seatKey: "s",  items: { adult: 2, child: 1 }, receive: "eticket",  payment: "credit",  status: "purchased", createdOffset: -10 },
@@ -633,6 +693,7 @@ const SAMPLE_ORDERS_DEF = [
   { userId: "u003", eventId: "e501", perfIdx: 1, seatKey: "a",  items: { general: 1, u25: 1 },  receive: "eticket",  payment: "credit",  status: "purchased", createdOffset: -25 },
   { userId: "u004", eventId: "e404", perfIdx: 0, seatKey: "gn", items: { adultm: 1 },           receive: "eticket",  payment: "konbini", status: "purchased", createdOffset: -14 },
   { userId: "u004", eventId: "e004", perfIdx: 0, seatKey: "gn", items: { adultm: 1 },           receive: "eticket",  payment: "konbini", status: "lottery",   createdOffset: -1, noticeUnread: true },
+  { userId: "u003", eventId: "e901", perfIdx: "past", seatKey: "rs", items: { general: 2 },      receive: "eticket",  payment: "credit",  status: "purchased", createdOffset: -30 },
 ];
 
 // ── サンプルお気に入り ─────────────────────────────────────
@@ -652,7 +713,7 @@ const NOTICE_CATEGORIES = [
 ];
 
 // サンプルお知らせ（初回起動時のみ投入）
-// offset: BASE_DATE からの日数（0以下） / to: 配信先ユーザー / readBy: 既読済みのユーザー
+// offset: 今日からの日数（0以下・受信日） / to: 配信先ユーザー / readBy: 既読済みのユーザー
 // ※ 購入完了・抽選申込受付・キャンセルのお知らせは SAMPLE_ORDERS_DEF から自動生成（app.js）
 // 新着パターン: u001=3件 / u002=2件 / u004=1件 / u003=新着なし（全件既読） / u005=お知らせ0件
 const SAMPLE_NOTICES_DEF = [

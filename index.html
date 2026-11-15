@@ -55,13 +55,14 @@
       <div class="genre-tiles" id="genre-tiles"></div>
     </div>
 
-    <!-- 今週末のイベント -->
-    <div class="section" id="section-weekend">
+    <!-- GW特集（2027/04/29〜05/05） -->
+    <div class="section" id="section-gw">
       <div class="section-title">
-        <span id="weekend-title"></span>
-        <a class="more" id="link-weekend-more" href="#" data-i18n-en="See all →">すべて見る →</a>
+        <span id="gw-title"></span>
+        <a class="more" id="link-gw-more" href="#" data-i18n-en="See all →">すべて見る →</a>
       </div>
-      <div class="h-scroll" id="weekend-list"></div>
+      <p class="gw-lead" id="gw-lead"></p>
+      <div class="h-scroll" id="gw-list"></div>
     </div>
 
     <div class="two-col" style="margin-bottom:40px">
@@ -99,7 +100,7 @@
       document.title = I18n.t("TicketMarket Demo｜チケット販売デモサイト", "TicketMarket Demo | Ticketing Demo Site");
       initHeroForm();
       renderGenreTiles();
-      renderWeekend();
+      renderGW();
       renderRanking();
       renderNotice();
       renderHistory();
@@ -135,23 +136,20 @@
       }).join("");
     }
 
-    // 今週末（直近の土日）。今日が日曜なら今日のみ
-    function weekendRange() {
-      const t = App.today(), dow = t.getDay();
-      const sat = new Date(t); sat.setDate(t.getDate() + (dow === 0 ? -1 : 6 - dow));
-      const sun = new Date(sat); sun.setDate(sat.getDate() + 1);
-      return { from: App.fmtDate(sat < t ? t : sat), to: App.fmtDate(sun) };
-    }
-
-    function renderWeekend() {
-      const { from, to } = weekendRange();
-      document.getElementById("weekend-title").textContent =
-        I18n.t(`📅 今週末のイベント（${App.fmtDateDow(from)}〜${App.fmtDateDow(to)}）`, `📅 This Weekend (${App.fmtDateSlash(from)} - ${App.fmtDateSlash(to)})`);
-      document.getElementById("link-weekend-more").href = I18n.urlWith(`search.html?mode=genredate&from=${from}&to=${to}`);
-      const list = App.searchEvents({ from, to }).sort((a, b) => b.popularity - a.popularity).slice(0, 10);
-      document.getElementById("weekend-list").innerHTML = list.length
-        ? list.map(e => eventCardHtml(e, { idPrefix: "weekend-" })).join("")
-        : `<div class="alert alert-info">${I18n.t("今週末のイベントはありません。", "No events this weekend.")}</div>`;
+    // GW特集：2027/04/29〜05/05 に公演があるイベント。GW限定（tags: "GW"）を先頭に、残りは人気順で計12件
+    function renderGW() {
+      const from = GW_FROM, to = GW_TO;
+      document.getElementById("gw-title").textContent =
+        I18n.t(`🎏 GW特集 2027（${App.fmtDateDow(from)}〜${App.fmtDateDow(to)}）`, `🎏 Golden Week 2027 (${App.fmtDateSlash(from)} - ${App.fmtDateSlash(to)})`);
+      document.getElementById("gw-lead").textContent =
+        I18n.t("大型連休に楽しめるライブ・スポーツ・イベントを集めました。GW限定公演も多数！", "Concerts, sports and events to enjoy over the holidays, including Golden Week specials.");
+      document.getElementById("link-gw-more").href = I18n.urlWith(`search.html?mode=genredate&from=${from}&to=${to}`);
+      const all = App.searchEvents({ from, to }).filter(e => App.salesStatus(e).key !== "closed");
+      const isGW = e => e.tags.includes("GW");
+      const list = [...all.filter(isGW).sort((a, b) => b.popularity - a.popularity), ...all.filter(e => !isGW(e)).sort((a, b) => b.popularity - a.popularity)].slice(0, 12);
+      document.getElementById("gw-list").innerHTML = list.length
+        ? list.map(e => eventCardHtml(e, { idPrefix: "gw-" })).join("")
+        : `<div class="alert alert-info">${I18n.t("GW期間のイベントはありません。", "No events during Golden Week.")}</div>`;
     }
 
     function rankItem(e, i, prefix, meta) {

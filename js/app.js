@@ -30,8 +30,15 @@ const App = (() => {
   const _read = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } };
   const _write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
+  // マスター（公演日など）の構成を変えたら上げる。保存済みの購入履歴・お知らせ等を作り直す（会員・ログイン状態は残す）
+  const DATA_VERSION = "2";   // 2: 公演日を2027/03/28基準に固定・常設/GW追加
+
   // ── 初期化 ─────────────────────────────────────────────────
   function init() {
+    if (_read("tm_data_version", null) !== DATA_VERSION) {
+      [LS.ORDERS, LS.NOTICES, LS.CART, LS.HISTORY, LS.SEARCH].forEach(k => localStorage.removeItem(k));
+      _write("tm_data_version", DATA_VERSION);
+    }
     _state.users = _read(LS.USERS, null);
     if (!Array.isArray(_state.users)) { _state.users = USERS.map(u => ({ ...u })); _write(LS.USERS, _state.users); }
 
@@ -55,8 +62,9 @@ const App = (() => {
 
   function _buildSampleNotices() {
     const list = [];
+    // お知らせの受信日時は「今日」基準（offset 日前）
     const at = (offset, time) => {
-      const d = new Date(BASE_DATE); d.setDate(d.getDate() + offset);
+      const d = new Date(_TODAY); d.setDate(d.getDate() + offset);
       const [h, m] = time.split(":"); d.setHours(+h, +m, 0, 0);
       return d.toISOString();
     };
@@ -83,11 +91,13 @@ const App = (() => {
     const list = [];
     SAMPLE_ORDERS_DEF.forEach((d, i) => {
       const e = getEvent(d.eventId); if (!e) return;
-      const perf = e.perfs[d.perfIdx]; if (!perf) return;
+      // perfIdx: 公演の並び順 / "past": 今日より前の直近の公演（常設イベントの観覧済みサンプル用）
+      const perf = d.perfIdx === "past" ? e.perfs.filter(p => p.date < todayStr()).pop() : e.perfs[d.perfIdx]; if (!perf) return;
       const seat = getSeat(e, d.seatKey); if (!seat) return;
       const items = Object.entries(d.items).map(([k, qty]) => ({ typeKey: k, typeName: TICKET_TYPES[k].name, price: seat.prices[k], qty }));
       const fees = calcFees(items, d.receive, d.payment);
-      const created = new Date(BASE_DATE); created.setDate(created.getDate() + d.createdOffset); created.setHours(10, 15, 0, 0);
+      // 購入日は「今日」基準（createdOffset 日前）
+      const created = new Date(_TODAY); created.setDate(created.getDate() + d.createdOffset); created.setHours(10, 15, 0, 0);
       const user = USERS.find(u => u.id === d.userId);
       list.push(_orderRecord({
         seq: i + 1, created, user, event: e, perf, seat, items, fees,
@@ -660,6 +670,7 @@ const App = (() => {
 
   // 期間表示（同日なら1日のみ）
   function fmtPeriod(e) {
+    if (e.permanent) return _t(e.permanent.ja, e.permanent.en);   // 常設イベント
     const a = firstDate(e), b = lastDate(e);
     return a === b ? fmtDateDow(a) : `${fmtDateDow(a)} 〜 ${fmtDateDow(b)}`;
   }

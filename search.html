@@ -60,6 +60,7 @@
         <button class="chip" id="quick-weekend" onclick="quickDate('weekend')" data-i18n-en="This weekend">今週末</button>
         <button class="chip" id="quick-nextweekend" onclick="quickDate('nextweekend')" data-i18n-en="Next weekend">来週末</button>
         <button class="chip" id="quick-30days" onclick="quickDate('30days')" data-i18n-en="Within 30 days">30日以内</button>
+        <button class="chip" id="quick-gw" onclick="quickDate('gw')" data-i18n-en="🎏 GW 2027">🎏 GW 2027</button>
         <button class="chip" id="quick-clear" onclick="quickDate('clear')" data-i18n-en="Clear dates">日付クリア</button>
       </div>
     </div>
@@ -199,6 +200,7 @@
       if (kind === "weekend") { from = dow === 0 ? d(0) : d(6 - dow); to = dow === 0 ? d(0) : d(7 - dow); }
       if (kind === "nextweekend") { const s = (dow === 0 ? 6 : 6 - dow + 7); from = d(s); to = d(s + 1); }
       if (kind === "30days") { from = d(0); to = d(30); }
+      if (kind === "gw") { from = GW_FROM; to = GW_TO; }
       document.getElementById("sd-from").value = App.fmtDateSlash(from);
       document.getElementById("sd-to").value = App.fmtDateSlash(to);
       runSearch(false);
