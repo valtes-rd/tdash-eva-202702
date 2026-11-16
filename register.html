@@ -113,7 +113,8 @@
       CustomSelect.init({ id: "dd-region", input: "r-pref", placeholder: ["地方・都道府県を選択", "Select region / prefecture"], groupHead: ["地方を選択してください", "Select a region"],
         groups: REGIONS.map(r => ({ key: r.key, label: I18n.t(r.name, r.en), items: r.prefs.map(([ja, en]) => ({ value: ja, label: I18n.t(ja, en) })) })) });
       CustomSelect.init({ id: "dd-occupation", input: "r-occupation", placeholder: ["職業・役職を選択", "Select occupation / position"],
-        accordion: true, groupHead: ["職業を選び、役職・区分を選択してください", "Select an occupation, then a position"],
+        // スクロール追加読み込み：職業は最初6件→スクロールで3件ずつ、役職は最初4件→スクロールで2件ずつ
+        accordion: true, pageSize: 6, pageStep: 3, subPageSize: 4, subStep: 2, groupHead: ["職業を選び、役職・区分を選択してください", "Select an occupation, then a position"],
         groups: OCCUPATIONS.map(o => ({ key: o.key, label: I18n.t(o.name, o.en),
           items: o.roles.map(([k, ja, en]) => ({ value: `${o.key}/${k}`, key: `${o.key}-${k}`, label: I18n.t(ja, en) })) })) });
 

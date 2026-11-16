@@ -429,6 +429,8 @@ function customCheckHtml({ id, name, value = "on", label, checked = false, kind 
 // CustomSelect.init({ ..., groups:[...], accordion:true })                              … 2階層のアコーディオン（グループを押すと子が下に開く）
 //  アコーディオン: グループ見出し li.cs-acc-head #{id}-group-{key}（aria-expanded）／ 子の一覧 ul.cs-acc-body #{id}-sub-{key}（開くと .open）
 //                  子の選択肢 #{id}-opt-{item.key}（item.key があればそれ、なければ value）。開閉は1つずつ（他のグループは閉じる）
+//                  スクロール追加読み込み：#{id}-list / #{id}-sub-{key} の data-loaded（表示済み件数）・data-total（全件数）。
+//                  パネル（#{id}-panel）や開いた子の一覧を下までスクロールすると「読み込み中…」（#{id}-loading-more / #{id}-sub-{key}-loading）のあと追加
 //  トリガー  : #{id}-trigger（role=combobox, aria-expanded, data-value）
 //  パネル    : #{id}-panel。開いてから約0.3秒後に選択肢を描画（それまでは「読み込み中…」）
 //  選択肢    : li.cs-option[data-value] #{id}-opt-{value} ／ グループ li.cs-group[data-group] #{id}-group-{key} ／ 戻る #{id}-back
@@ -442,6 +444,7 @@ const CustomSelect = (() => {
     cfgs[cfg.id] = cfg;
     const el = document.getElementById(cfg.id);
     el.classList.add("cs");
+    if (cfg.accordion) el.classList.add("cs--lazy");
     el.innerHTML = `
       <button type="button" class="cs-trigger" id="${cfg.id}-trigger" role="combobox" aria-haspopup="listbox" aria-expanded="false" data-value=""
         onclick="CustomSelect.toggle('${cfg.id}')"><span class="cs-value cs-placeholder" id="${cfg.id}-value">${L(cfg.placeholder)}</span><span class="cs-arrow" aria-hidden="true">▾</span></button>
@@ -473,15 +476,30 @@ const CustomSelect = (() => {
     const cur = document.getElementById(cfg.input).value;
     const opt = it => `<li role="option" class="cs-option${it.value === cur ? " selected" : ""}" id="${id}-opt-${it.key || it.value}" data-value="${it.value}"
       aria-selected="${it.value === cur}" onclick="CustomSelect.select('${id}','${it.value}')">${it.label}</li>`;
+    panel.onscroll = null;
     if (cfg.accordion) {
-      // 選択済みならそのグループを開いた状態で表示
-      const curGroup = (cfg.groups.find(g => g.items.some(it => it.value === cur)) || {}).key;
-      panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div><ul class="cs-list cs-acc" role="listbox" id="${id}-list">
-        ${cfg.groups.map(g => `<li class="cs-acc-item" data-group="${g.key}">
+      // スクロール追加読み込み：グループは最初 pageSize 件、パネルを下までスクロールすると pageStep 件ずつ追加。
+      // 子（役職）も開いた一覧の中を下までスクロールすると subStep 件ずつ追加（最初は subPageSize 件）。
+      // 選択済みの値がある場合は、そのグループ・子が見えるところまで最初から読み込み、そのグループを開いておく
+      const curGi = cfg.groups.findIndex(g => g.items.some(it => it.value === cur));
+      const curGroup = curGi >= 0 ? cfg.groups[curGi].key : null;
+      cfg._opt = opt;
+      cfg._sub = {};
+      cfg._groupHtml = g => {
+        const ci = g.items.findIndex(it => it.value === cur);
+        const n = Math.min(g.items.length, Math.max(cfg.subPageSize || 4, ci + 1));
+        cfg._sub[g.key] = n;
+        return `<li class="cs-acc-item" data-group="${g.key}">
           <div class="cs-option cs-acc-head" id="${id}-group-${g.key}" data-group="${g.key}" aria-expanded="${g.key === curGroup}"
             onclick="CustomSelect.accordion('${id}','${g.key}')">${g.label}<span class="cs-acc-icon" aria-hidden="true">▸</span></div>
-          <ul class="cs-acc-body${g.key === curGroup ? " open" : ""}" id="${id}-sub-${g.key}" role="group" data-group="${g.key}">${g.items.map(opt).join("")}</ul>
-        </li>`).join("")}</ul>`;
+          <ul class="cs-acc-body${g.key === curGroup ? " open" : ""}" id="${id}-sub-${g.key}" role="group" data-group="${g.key}"
+            data-loaded="${n}" data-total="${g.items.length}" onscroll="CustomSelect.moreItems('${id}','${g.key}')">${g.items.slice(0, n).map(opt).join("")}</ul>
+        </li>`;
+      };
+      cfg._shown = Math.min(cfg.groups.length, Math.max(cfg.pageSize || 6, curGi + 1));
+      panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div>
+        <ul class="cs-list cs-acc" role="listbox" id="${id}-list" data-loaded="${cfg._shown}" data-total="${cfg.groups.length}">${cfg.groups.slice(0, cfg._shown).map(cfg._groupHtml).join("")}</ul>`;
+      panel.onscroll = () => moreGroups(id);
       return;
     }
     if (cfg.groups && !groupKey) {
@@ -496,6 +514,38 @@ const CustomSelect = (() => {
   }
 
   function drill(id, groupKey) { renderLevel(id, groupKey); }
+
+  // ── スクロールで次の候補を追加（約0.6秒の「読み込み中…」のあと追加） ──
+  const nearBottom = el => el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+  function moreGroups(id) {
+    const cfg = cfgs[id], panel = document.getElementById(id + "-panel"), list = document.getElementById(id + "-list");
+    if (!list || cfg._loadingG || cfg._shown >= cfg.groups.length || !nearBottom(panel)) return;
+    cfg._loadingG = true;
+    list.insertAdjacentHTML("beforeend", `<li class="cs-loading cs-more" id="${id}-loading-more">${I18n.t("読み込み中…", "Loading…")}</li>`);
+    setTimeout(() => {
+      document.getElementById(id + "-loading-more")?.remove();
+      cfg._loadingG = false;
+      if (openId !== id || !document.getElementById(id + "-list")) return;
+      const next = cfg.groups.slice(cfg._shown, cfg._shown + (cfg.pageStep || 3));
+      list.insertAdjacentHTML("beforeend", next.map(cfg._groupHtml).join(""));
+      cfg._shown += next.length;
+      list.dataset.loaded = cfg._shown;
+    }, 600);
+  }
+  function moreItems(id, key) {
+    const cfg = cfgs[id], body = document.getElementById(`${id}-sub-${key}`), g = cfg.groups.find(x => x.key === key);
+    if (!body || body.dataset.loading || cfg._sub[key] >= g.items.length || !nearBottom(body)) return;
+    body.dataset.loading = "1";
+    body.insertAdjacentHTML("beforeend", `<li class="cs-loading cs-more" id="${id}-sub-${key}-loading">${I18n.t("読み込み中…", "Loading…")}</li>`);
+    setTimeout(() => {
+      document.getElementById(`${id}-sub-${key}-loading`)?.remove();
+      delete body.dataset.loading;
+      const next = g.items.slice(cfg._sub[key], cfg._sub[key] + (cfg.subStep || 2));
+      body.insertAdjacentHTML("beforeend", next.map(cfg._opt).join(""));
+      cfg._sub[key] += next.length;
+      body.dataset.loaded = cfg._sub[key];
+    }, 600);
+  }
 
   // アコーディオン：押したグループを開閉（他のグループは閉じる）
   function accordion(id, key) {
@@ -527,7 +577,7 @@ const CustomSelect = (() => {
   document.addEventListener("click", e => { if (openId && document.contains(e.target) && !document.getElementById(openId)?.contains(e.target)) close(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
 
-  return { init, toggle, open, close, drill, accordion, select };
+  return { init, toggle, open, close, drill, accordion, moreGroups, moreItems, select };
 })();
 
 // ── 郵便番号 → 住所サジェスト（外部APIは使わない） ──────────

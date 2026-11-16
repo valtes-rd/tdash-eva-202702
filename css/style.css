@@ -532,7 +532,10 @@ button, input, select, textarea { font-family: inherit; }
 .cs-acc-head[aria-expanded=true] .cs-acc-icon { transform: rotate(90deg); }
 /* 閉じている子は visibility:hidden（見えない・クリックできない）。開くと高さが伸びるアニメーション */
 .cs-acc-body { list-style: none; max-height: 0; overflow: hidden; visibility: hidden; transition: max-height .25s ease, visibility 0s .25s; background: #FCFBFD; }
-.cs-acc-body.open { max-height: 320px; visibility: visible; transition: max-height .25s ease, visibility 0s 0s; }
+.cs-acc-body.open { max-height: 122px; overflow-y: auto; visibility: visible; transition: max-height .25s ease, visibility 0s 0s; }
+/* スクロール追加読み込みのパネル（最初の候補だけでスクロールできる高さ） */
+.cs--lazy .cs-panel { max-height: 232px; }
+.cs-more { text-align: center; list-style: none; }
 .cs-acc-body .cs-option { padding-left: 30px; font-size: 13px; }
 .cs-acc-body .cs-option::before { content: "└"; color: var(--gray-bd); margin-right: 6px; }
 .cs-acc-body .cs-option { justify-content: flex-start; }
