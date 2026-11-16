@@ -431,6 +431,8 @@ function customCheckHtml({ id, name, value = "on", label, checked = false, kind 
 //                  子の選択肢 #{id}-opt-{item.key}（item.key があればそれ、なければ value）。開閉は1つずつ（他のグループは閉じる）
 //                  スクロール追加読み込み：#{id}-list / #{id}-sub-{key} の data-loaded（表示済み件数）・data-total（全件数）。
 //                  パネル（#{id}-panel）や開いた子の一覧を下までスクロールすると「読み込み中…」（#{id}-loading-more / #{id}-sub-{key}-loading）のあと追加
+//                  パネルの上端・下端に ▲ #{id}-scroll-up ／ ▼ #{id}-scroll-down（押すと約3件分スクロール）。
+//                  一番上では▲、一番下では▼が非表示（.is-hidden・data-visible="false"）
 //  トリガー  : #{id}-trigger（role=combobox, aria-expanded, data-value）
 //  パネル    : #{id}-panel。開いてから約0.3秒後に選択肢を描画（それまでは「読み込み中…」）
 //  選択肢    : li.cs-option[data-value] #{id}-opt-{value} ／ グループ li.cs-group[data-group] #{id}-group-{key} ／ 戻る #{id}-back
@@ -497,9 +499,15 @@ const CustomSelect = (() => {
         </li>`;
       };
       cfg._shown = Math.min(cfg.groups.length, Math.max(cfg.pageSize || 6, curGi + 1));
-      panel.innerHTML = `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div>
-        <ul class="cs-list cs-acc" role="listbox" id="${id}-list" data-loaded="${cfg._shown}" data-total="${cfg.groups.length}">${cfg.groups.slice(0, cfg._shown).map(cfg._groupHtml).join("")}</ul>`;
-      panel.onscroll = () => moreGroups(id);
+      // 上下のスクロール補助ボタン（パネル内の上端・下端に固定。端にいるときは非表示）
+      const arrow = (dir, sign, label) => `<button type="button" class="cs-scroll-btn cs-scroll-${dir}" id="${id}-scroll-${dir}" data-visible="false"
+        aria-label="${label}" title="${label}" onclick="CustomSelect.scrollBy('${id}',${sign})">${dir === "up" ? "▲" : "▼"}</button>`;
+      panel.innerHTML = arrow("up", -1, I18n.t("上へスクロール", "Scroll up")) +
+        `<div class="cs-head">${L(cfg.groupHead || ["選択してください", "Select"])}</div>
+        <ul class="cs-list cs-acc" role="listbox" id="${id}-list" data-loaded="${cfg._shown}" data-total="${cfg.groups.length}">${cfg.groups.slice(0, cfg._shown).map(cfg._groupHtml).join("")}</ul>` +
+        arrow("down", 1, I18n.t("下へスクロール", "Scroll down"));
+      panel.onscroll = () => { moreGroups(id); updateArrows(id); };
+      updateArrows(id);
       return;
     }
     if (cfg.groups && !groupKey) {
@@ -517,6 +525,20 @@ const CustomSelect = (() => {
 
   // ── スクロールで次の候補を追加（約0.6秒の「読み込み中…」のあと追加） ──
   const nearBottom = el => el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+
+  // 上下スクロールボタン：一番上なら▲を、一番下なら▼を非表示（visibility:hidden・data-visible="false"）
+  function updateArrows(id) {
+    const panel = document.getElementById(id + "-panel");
+    const up = document.getElementById(id + "-scroll-up"), down = document.getElementById(id + "-scroll-down");
+    if (!panel || !up || !down) return;
+    const showUp = panel.scrollTop > 2, showDown = panel.scrollTop + panel.clientHeight < panel.scrollHeight - 2;
+    up.classList.toggle("is-hidden", !showUp); up.dataset.visible = showUp;
+    down.classList.toggle("is-hidden", !showDown); down.dataset.visible = showDown;
+  }
+  // ボタン1回で約3件分スクロール
+  function scrollBy(id, sign) {
+    document.getElementById(id + "-panel")?.scrollBy({ top: sign * 114, behavior: "smooth" });
+  }
   function moreGroups(id) {
     const cfg = cfgs[id], panel = document.getElementById(id + "-panel"), list = document.getElementById(id + "-list");
     if (!list || cfg._loadingG || cfg._shown >= cfg.groups.length || !nearBottom(panel)) return;
@@ -530,6 +552,7 @@ const CustomSelect = (() => {
       list.insertAdjacentHTML("beforeend", next.map(cfg._groupHtml).join(""));
       cfg._shown += next.length;
       list.dataset.loaded = cfg._shown;
+      updateArrows(id);   // 候補が増えたので下へのボタンが再び出る
     }, 600);
   }
   function moreItems(id, key) {
@@ -554,6 +577,7 @@ const CustomSelect = (() => {
       h.setAttribute("aria-expanded", willOpen);
       document.getElementById(`${id}-sub-${k}`).classList.toggle("open", willOpen);
     });
+    setTimeout(() => updateArrows(id), 280);   // 開閉アニメーション後に高さが変わるので再判定
   }
 
   function select(id, value) {
@@ -577,7 +601,7 @@ const CustomSelect = (() => {
   document.addEventListener("click", e => { if (openId && document.contains(e.target) && !document.getElementById(openId)?.contains(e.target)) close(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
 
-  return { init, toggle, open, close, drill, accordion, moreGroups, moreItems, select };
+  return { init, toggle, open, close, drill, accordion, moreGroups, moreItems, scrollBy, updateArrows, select };
 })();
 
 // ── 郵便番号 → 住所サジェスト（外部APIは使わない） ──────────
