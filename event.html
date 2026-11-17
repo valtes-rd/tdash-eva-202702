@@ -71,9 +71,11 @@
       o.className = "modal-overlay schedule-overlay"; o.id = "schedule-modal";
       o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true"); o.setAttribute("aria-labelledby", "schedule-modal-title");
       o.innerHTML = `<div class="modal-box schedule-modal-box" tabindex="-1" id="schedule-modal-box">
-          <div class="modal-title" id="schedule-modal-title" data-event-id="${ev.id}">📅 ${ev.title}</div>
+          <div class="schedule-modal-head">
+            <div class="modal-title" id="schedule-modal-title" data-event-id="${ev.id}">📅 ${ev.title}</div>
+            <div class="schedule-modal-hint" id="schedule-modal-hint">${_t("<kbd>Esc</kbd> キーを押すと閉じます", "Press <kbd>Esc</kbd> to close")}</div>
+          </div>
           <iframe id="schedule-iframe" src="${I18n.urlWith("schedule-frame.html?id=" + ev.id)}" style="width:100%;height:360px;border:none;display:block" scrolling="no" title="${_t("公演カレンダー", "Performance Calendar")}"></iframe>
-          <div class="schedule-modal-hint" id="schedule-modal-hint">${_t("Esc キーを押すと閉じます", "Press Esc to close")}</div>
         </div>`;
       document.body.appendChild(o);
       // 下のページ（ヘッダー・本文・フッター）を操作不可にし、スクロールも止める
