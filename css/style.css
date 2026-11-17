@@ -571,5 +571,6 @@ button, input, select, textarea { font-family: inherit; }
   .schedule-modal-head .modal-title { flex-basis: 100%; }
   .schedule-modal-hint { order: -1; margin-left: auto; }
 }
-.schedule-modal-hint kbd { display: inline-block; padding: 1px 7px; border: 1px solid currentColor; border-bottom-width: 3px; border-radius: 5px; background: #fff; font-family: inherit; font-size: 12px; line-height: 1.4; }
+.schedule-modal-hint .esc-key { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border: 1.5px solid #92400E; border-bottom-width: 4px; border-radius: 7px; background: #fff; color: #92400E; font-family: inherit; font-size: 14px; font-weight: 800; line-height: 1.3; box-shadow: 0 1px 0 rgba(0,0,0,.15); }
+.schedule-modal-hint .esc-key svg { flex-shrink: 0; }
 body.modal-open { overflow: hidden; }
