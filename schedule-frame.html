@@ -93,6 +93,9 @@
       setTimeout(() => window.parent.postMessage({ type: "scheduleFrameHeight", height: document.getElementById("schedule-wrap").offsetHeight + 12 }, "*"), 50);
     }
 
+    // Esc はフォーカスが iframe 内にあっても親（モーダル）を閉じられるよう通知する
+    document.addEventListener("keydown", e => { if (e.key === "Escape") window.parent.postMessage({ type: "scheduleFrameEsc" }, "*"); });
+
     function goSelect(date) {
       const url = `ticket-select.html?eventId=${ev.id}&date=${date}`;
       window.parent.location.href = I18n.urlWith(url);

@@ -546,3 +546,22 @@ button, input, select, textarea { font-family: inherit; }
 .cs-scroll-up { top: 0; border-bottom: 1px solid var(--gray-lt); }
 .cs-scroll-down { bottom: 0; border-top: 1px solid var(--gray-lt); }
 .cs-scroll-btn.is-hidden { visibility: hidden; }
+
+/* イベント詳細：直近1週間の公演状況 */
+.week-range { margin-bottom: 8px; }
+.week-table { width: 100%; min-width: 560px; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+.week-table td { border: 1px solid var(--gray-bd); vertical-align: top; padding: 6px; height: 74px; }
+.week-table td.clickable { cursor: pointer; } .week-table td.clickable:hover { background: var(--light-bg); }
+.week-table td.no-perf { background: #FAFAFC; }
+.week-date { font-weight: 700; font-size: 13px; color: var(--accent); margin-bottom: 4px; } .week-date span { font-weight: 400; font-size: 11px; }
+.week-date.sun { color: #B91C1C; } .week-date.sat { color: #1D4ED8; }
+.week-table .sf-perf { display: block; margin-top: 3px; border-radius: 4px; padding: 1px 3px; font-size: 11px; font-weight: 700; text-align: center; }
+.week-table .sf-ok { background: #D1FAE5; color: #047857; } .week-table .sf-few { background: #FEF3C7; color: #B45309; }
+.week-table .sf-soldout { background: #FEE2E2; color: #B91C1C; } .week-table .sf-closed { background: #ECEAF1; color: var(--gray); }
+.week-none { color: #B5B1C2; font-size: 11px; }
+.week-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.week-foot .btn { margin-left: auto; }
+/* 1か月カレンダーのモーダル（Escで閉じる） */
+.schedule-modal-box { max-width: 760px; outline: none; }
+.schedule-modal-hint { text-align: right; font-size: 12px; color: var(--gray); margin-top: 8px; }
+body.modal-open { overflow: hidden; }

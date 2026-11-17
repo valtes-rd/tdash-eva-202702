@@ -97,7 +97,7 @@ ticket-market/
 ├── index.html          # トップ（ジャンル×エリア×日付検索・ジャンル・GW特集・常設イベント・ランキング・抽選/発売予定・閲覧履歴）
 ├── search.html         # イベント検索（3モード: ジャンル・日付 / ジャンル / キーワード、20件ずつのページャー）
 ├── event.html          # イベント詳細（別ウィンドウ・公演一覧・席種料金表・注意事項・お気に入り）
-├── schedule-frame.html # 公演カレンダー（event.html 内 iframe・日付クリックで公演選択へ）
+├── schedule-frame.html # 1か月の公演カレンダー（event.html の「もっと詳しく」モーダル内 iframe・日付クリックで公演選択へ）
 ├── ticket-select.html  # チケット選択（公演 → 空席確認 → 席種 → 券種ごとの枚数）
 ├── purchase.html       # 購入手続き（購入者情報・受取方法・支払方法・同意 → 確認 → 完了）
 ├── login.html / register.html
@@ -119,7 +119,7 @@ ticket-market/
 | 🔍 イベント検索 | ①ジャンル・エリア・開催日（今日/明日/今週末/来週末/30日以内/GW 2027 のクイック指定あり） ②ジャンル＋サブジャンル ③キーワード（スペース区切りAND） |
 | 🧮 絞り込み・並び替え | 販売状況（発売中/抽選/発売前/完売）、開催日・料金・人気順、グリッド/リスト切替 |
 | 📄 ページャー | 検索結果は20件ずつ表示。« ‹前へ 1 … 4 5 6 … 13 次へ› » 形式（スマホ幅は前後1ページ・«»非表示）。URL `?page=N` で指定ページを直接表示 |
-| 🎫 イベント詳細 | 公演カレンダー（iframe）・公演ごとの空席（◎/△/×）・席種×券種の料金表・注意事項 |
+| 🎫 イベント詳細 | 直近1週間の公演状況（次に受付中の公演がある日から7日間・日付クリックで公演選択へ）、右下の「もっと詳しく」で**モーダル**（下のページは操作不可・**Escキーでのみ閉じる**）にイベント名と1か月カレンダー（iframe）を表示。公演ごとの空席（◎/△/×）・席種×券種の料金表・注意事項 |
 | 🪑 チケット選択 | 公演選択 → 空席確認 → 席種（残席表示）→ 券種（大人/子供/学生/U-25 等、イベントにより異なる）ごとの枚数 |
 | 💳 購入手続き | 受取方法（電子チケット/コンビニ発券/配送）・支払方法（クレジット/コンビニ払い/QR）・手数料自動計算・同意チェック |
 | 🎲 抽選販売 | 抽選申込 → 当落発表日以降にマイページで当選/落選表示 |
@@ -162,7 +162,8 @@ Demo-Travel と同様、XPath/CSS で安定して要素を特定できるよう 
 | カード | `.event-card[data-event-id="e001"][data-sales-status="soldout"]` |
 | お気に入り（状態別ID） | `#btn-fav-off`（未登録）/ `#btn-fav-on`（登録済み） |
 | 公演行・選択ボタン | `#perf-list tr[data-date="…"][data-availability="ok"]` / `#btn-perf-e101-p01` |
-| 公演カレンダー（iframe） | `#schedule-iframe` 内 `#sf-day-YYYY-MM-DD`, `#sf-prev`, `#sf-next` |
+| 直近1週間の公演状況 | `#week-card` / 期間 `#week-range[data-from][data-to]` / 日付セル `#week-day-YYYY-MM-DD[data-perf-count]`（受付中の公演がある日は `.clickable`）/ 公演 `.sf-perf[data-perf-id][data-availability]` / 「もっと詳しく」`#btn-schedule-more` |
+| 1か月カレンダーのモーダル | `#schedule-modal`（`role=dialog` `aria-modal=true`）/ タイトル `#schedule-modal-title[data-event-id]` / `#schedule-iframe` 内 `#sf-day-YYYY-MM-DD`, `#sf-prev`, `#sf-next`, `#sf-month-label`。開いている間は下のページが `inert`（クリック・キー操作不可）、背景クリックでは閉じず **Escキーでのみ閉じる**（iframe 内にフォーカスがあっても可）。閉じるとフォーカスは `#btn-schedule-more` に戻る |
 | 席種ラジオ（席種名ベース） | `#seat-S指定席` / `#seat-list tr[data-seat-name="S指定席"][data-remaining]` |
 | 券種ごとの枚数 | `#qty-adult` / `#qty-child` / `#qty-general` …（キーは `TICKET_TYPES`） |
 | 受取・支払方法 | `#receive-eticket` / `#receive-konbini` / `#receive-delivery`、`#payment-credit` / `#payment-konbini` / `#payment-qr` |

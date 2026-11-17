@@ -33,9 +33,62 @@
           const f = document.getElementById("schedule-iframe");
           if (f) f.style.height = (e.data.height + 4) + "px";
         }
+        // iframe 内にフォーカスがあるときの Esc（iframe から通知される）
+        if (e.data?.type === "scheduleFrameEsc") closeScheduleModal();
       });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") closeScheduleModal(); });
       render();
     });
+
+    // 直近1週間：次に受付中の公演がある日（なければ今日）から7日間
+    function weekHtml(e) {
+      const _t = I18n.t.bind(I18n);
+      const first = App.futurePerfs(e)[0];
+      const start = new Date((first ? first.date : App.todayStr()) + "T00:00:00");
+      const st = App.salesStatus(e).key, buyable = !["before", "soldout", "closed"].includes(st);
+      const mark = { ok: "◎", few: "△", soldout: "×", closed: "-" };
+      const days = [...Array(7)].map((_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return App.fmtDate(d); });
+      const cells = days.map(ds => {
+        const d = new Date(ds + "T00:00:00"), dow = d.getDay();
+        const perfs = e.perfs.filter(pf => pf.date === ds), avs = perfs.map(pf => App.perfAvailability(e, pf));
+        const clickable = buyable && avs.some(a => a.key === "ok" || a.key === "few");
+        return `<td id="week-day-${ds}" data-date="${ds}" data-perf-count="${perfs.length}" class="${clickable ? "clickable" : ""}${perfs.length ? "" : " no-perf"}"
+            ${clickable ? `onclick="I18n.go('ticket-select.html?eventId=${e.id}&date=${ds}')" title="${_t("この日の公演を選択", "Select this date")}"` : ""}>
+            <div class="week-date ${dow === 0 ? "sun" : dow === 6 ? "sat" : ""}">${d.getMonth() + 1}/${d.getDate()}<span>（${App.dowName(dow)}）</span></div>
+            ${perfs.length ? perfs.map((pf, i) => `<span class="sf-perf sf-${avs[i].key}" data-perf-id="${pf.id}" data-availability="${avs[i].key}">${pf.start} ${mark[avs[i].key]}</span>`).join("")
+                           : `<span class="week-none">${_t("公演なし", "No show")}</span>`}
+          </td>`;
+      }).join("");
+      return `<div class="week-range muted" id="week-range" data-from="${days[0]}" data-to="${days[6]}">${App.fmtDateDow(days[0])} 〜 ${App.fmtDateDow(days[6])}${first ? "" : _t("（受付中の公演はありません）", " (no performances on sale)")}</div>
+        <div class="table-wrap"><table class="week-table" id="week-table"><tr>${cells}</tr></table></div>`;
+    }
+
+    // 1か月カレンダーのモーダル（下のページは操作不可。Esc キーでのみ閉じる）
+    function openScheduleModal() {
+      if (document.getElementById("schedule-modal")) return;
+      const _t = I18n.t.bind(I18n);
+      const o = document.createElement("div");
+      o.className = "modal-overlay schedule-overlay"; o.id = "schedule-modal";
+      o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true"); o.setAttribute("aria-labelledby", "schedule-modal-title");
+      o.innerHTML = `<div class="modal-box schedule-modal-box" tabindex="-1" id="schedule-modal-box">
+          <div class="modal-title" id="schedule-modal-title" data-event-id="${ev.id}">📅 ${ev.title}</div>
+          <iframe id="schedule-iframe" src="${I18n.urlWith("schedule-frame.html?id=" + ev.id)}" style="width:100%;height:360px;border:none;display:block" scrolling="no" title="${_t("公演カレンダー", "Performance Calendar")}"></iframe>
+          <div class="schedule-modal-hint" id="schedule-modal-hint">${_t("Esc キーを押すと閉じます", "Press Esc to close")}</div>
+        </div>`;
+      document.body.appendChild(o);
+      // 下のページ（ヘッダー・本文・フッター）を操作不可にし、スクロールも止める
+      [...document.body.children].forEach(el => { if (el !== o) el.inert = true; });
+      document.body.classList.add("modal-open");
+      document.getElementById("schedule-modal-box").focus();
+    }
+    function closeScheduleModal() {
+      const o = document.getElementById("schedule-modal");
+      if (!o) return;
+      o.remove();
+      [...document.body.children].forEach(el => { el.inert = false; });
+      document.body.classList.remove("modal-open");
+      document.getElementById("btn-schedule-more")?.focus();
+    }
 
     function render() {
       const e = ev, _t = I18n.t.bind(I18n);
@@ -111,11 +164,14 @@
           </div>
         </div>
 
-        <!-- 公演カレンダー（iframe） -->
-        <div class="card mb-24">
-          <div class="card-head">${_t("📅 公演カレンダー", "📅 Performance Calendar")}</div>
-          <div style="padding:14px 14px 6px">
-            <iframe id="schedule-iframe" src="${I18n.urlWith("schedule-frame.html?id=" + e.id)}" style="width:100%;height:330px;border:none;display:block" scrolling="no" title="${_t("公演カレンダー", "Performance Calendar")}"></iframe>
+        <!-- 直近1週間の公演状況（1か月カレンダーは「もっと詳しく」のモーダルで表示） -->
+        <div class="card mb-24" id="week-card">
+          <div class="card-head">${_t("📅 直近1週間の公演状況", "📅 Next 7 Days")}</div>
+          <div style="padding:14px">${weekHtml(e)}
+            <div class="week-foot">
+              <span class="muted">◎ ${_t("余裕あり", "Available")}　△ ${_t("残りわずか", "Few left")}　× ${_t("予定枚数終了", "Sold out")}　- ${_t("受付終了", "Closed")}</span>
+              <button class="btn btn-secondary btn-sm" id="btn-schedule-more" onclick="openScheduleModal()">${_t("もっと詳しく ▸", "More details ▸")}</button>
+            </div>
           </div>
         </div>
 
