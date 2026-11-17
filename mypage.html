@@ -186,6 +186,7 @@
             ${Object.keys(FILTERS).map(k => `<button class="chip${orderFilter === k ? " active" : ""}" id="order-filter-${k}" onclick="orderFilter='${k}';renderOrders()">${labels[k]} (${count(k)})</button>`).join("")}
           </div>
           <select id="order-sort" style="margin-left:auto" onchange="renderOrderList()">
+            <option value="random" selected>${I18n.t("ランダム", "Random")}</option>
             <option value="date">${I18n.t("公演日が近い順", "Performance date")}</option>
             <option value="created">${I18n.t("購入日が新しい順", "Newest purchase")}</option>
           </select>
@@ -197,7 +198,13 @@
     function renderOrderList() {
       const sort = document.getElementById("order-sort").value;
       let orders = App.getOrders(App.currentUser().id).filter(o => FILTERS[orderFilter](App.orderStatus(o)));
-      orders.sort(sort === "created" ? (a, b) => b.createdAt.localeCompare(a.createdAt)
+      if (sort === "random") {
+        // 既定はランダム表示（表示するたびに並びが変わる。Fisher–Yates シャッフル）
+        for (let i = orders.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [orders[i], orders[j]] = [orders[j], orders[i]];
+        }
+      } else orders.sort(sort === "created" ? (a, b) => b.createdAt.localeCompare(a.createdAt)
         : (a, b) => {
           // 今後の公演を近い順 → 過去の公演を新しい順
           const fa = App.daysUntil(a.date) >= 0, fb = App.daysUntil(b.date) >= 0;
